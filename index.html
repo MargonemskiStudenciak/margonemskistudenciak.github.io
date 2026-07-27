@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MargonemskiStudenciak - Portfolio</title>
+    <title>Boty i Skrypty do Margonem NI | MargonemskiStudenciak</title>
+    <meta name="description" content="Automatyzacja do gry Margonem NI: Auto Quester, Auto-Hunter i zaawansowane skrypty do expienia. Pobierz moje rozwiązania z GitHub Gist!">
     <style>
         /* --- BAZA I TŁO --- */
         body, html {
@@ -305,7 +306,7 @@
         <!-- Sekcja HOME -->
         <section id="home" class="section active">
             <div class="box">
-                <h1>MargonemskiStudenciak</h1>
+                <h1>Margonemski Studenciak</h1>
                 <h2>Nauka automatyzacji & Skrypty</h2>
                 <p>Witaj w miejscu, gdzie kończy się złudzenie uczciwej gry.<br>Pokonaj boty ich własną bronią.</p>
                 <a href="https://www.youtube.com/@MargonemskiStudenciak" target="_blank" class="btn">Odwiedź kanał YouTube</a>
@@ -378,6 +379,9 @@
 
         const activeSection = document.getElementById(sectionId);
         activeSection.classList.add('active');
+        
+        // DODAJ TĘ LINIJKĘ:
+        localStorage.setItem('lastActiveSection', sectionId);
     }
 
     // --- KOD ANIMACJI (SIECI) ---
@@ -529,6 +533,13 @@
 
         connect(); 
     }
+    // Dodaj to przed init() i animate()
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedSection = localStorage.getItem('lastActiveSection');
+        if (savedSection && document.getElementById(savedSection)) {
+            changeSection(savedSection);
+        }
+    });
 
     init();
     animate();
