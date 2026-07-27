@@ -288,6 +288,44 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        /* Kontener dla tekstu z funkcją kopiowania */
+.copy-wrapper {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+/* Dymek z napisem "Kliknij, aby skopiować" */
+.copy-tooltip {
+    visibility: hidden;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: #4fc3f7;
+    text-align: center;
+    padding: 5px 10px;
+    border-radius: 5px;
+    border: 1px solid #4fc3f7;
+    position: absolute;
+    z-index: 1000;
+    bottom: 125%; 
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    opacity: 0;
+    transition: all 0.3s ease; /* Dodaj transition */
+}
+
+/* Stan sukcesu (zmienia kolory po kliknięciu) */
+.copy-wrapper.success .copy-tooltip {
+    background-color: #4fc3f7;
+    color: #070b14;
+    border-color: #4fc3f7;
+}
+
+/* Pokazanie dymka przy najechaniu myszką */
+.copy-wrapper:hover .copy-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
     </style>
 </head>
 <body>
@@ -397,10 +435,15 @@
                 
                 <!-- Kontener wyrównany do lewej, ale wycentrowany w boxie -->
                 <div style="text-align: left; display: inline-block;">
-                    <p style="margin-bottom: 10px; font-size: 1.2rem;">
-                        <strong>Discord:</strong> 
-                        <span style="color: #4fc3f7; font-weight: bold;">margonemskistudenciak</span>
-                    </p>
+                    <!-- Zmień ten fragment w sekcji KONTAKT -->
+<p style="margin-bottom: 10px; font-size: 1.2rem;">
+    <strong>Discord:</strong> 
+    <span class="copy-wrapper" onclick="copyDiscord()">
+        <span style="color: #4fc3f7; font-weight: bold;">margonemskistudenciak</span>
+        <!-- Zmieniamy tylko id tutaj na 'tooltip-text' -->
+        <span class="copy-tooltip" id="tooltip-text">Kliknij, aby skopiować</span>
+    </span>
+</p>
                     <p style="font-size: 1.2rem;">
                         <strong>YouTube:</strong> 
                         <a href="https://www.youtube.com/@MargonemskiStudenciak" target="_blank" style="color: #4fc3f7; font-weight: bold; text-decoration: none;">Margonemski Studenciak</a>
@@ -434,6 +477,24 @@
 </script>
 
 <script>
+    function copyDiscord() {
+    const wrapper = document.querySelector(".copy-wrapper");
+    const tooltip = document.getElementById("tooltip-text");
+    
+    navigator.clipboard.writeText("margonemskistudenciak").then(() => {
+        // Zmień tekst i dodaj klasę z nowym kolorem
+        tooltip.innerText = "Skopiowano!";
+        wrapper.classList.add("success");
+        
+        // Po 2 sekundach wróć do stanu początkowego
+        setTimeout(() => {
+            tooltip.innerText = "Kliknij, aby skopiować";
+            wrapper.classList.remove("success");
+        }, 2000);
+    }).catch(err => {
+        console.error('Błąd kopiowania: ', err);
+    });
+}
     // --- LOGIKA ZMIANY ZAKŁADEK (SPA) ---
     function changeSection(sectionId) {
         const allSections = document.querySelectorAll('.section');
