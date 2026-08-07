@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konwerter Skryptów | Margonemski Studenciak</title>
+    <meta name="description" content="Konwerter skryptów Tampermonkey do postaci modułów kompatybilnych z Menadżerem dodatków Studenciaka.">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+    <style>
+        /* --- BAZA I TŁO --- */
+        body, html {
+            user-select: none;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #070b14;
+            overflow: auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            display: block;
+            pointer-events: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* --- PASEK BOCZNY --- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 60px;
+            height: 100vh;
+            background-color: #0c111a;
+            border-right: 1px solid rgba(79, 195, 247, 0.2);
+            z-index: 100;
+            transition: width 0.3s ease;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .sidebar:hover {
+            width: 200px;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .sidebar li {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            color: #ccc;
+            white-space: nowrap;
+        }
+
+        .sidebar li:hover, .sidebar li.active-nav {
+            background-color: rgba(79, 195, 247, 0.1);
+            color: #4fc3f7;
+        }
+
+        .sidebar .icon {
+            font-size: 1.5rem;
+            min-width: 40px;
+        }
+
+        .sidebar .text {
+            font-size: 1.1rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar:hover .text {
+            opacity: 1;
+        }
+
+        /* --- ZAWARTOŚĆ STRONY --- */
+        .main-content {
+            position: absolute;
+            top: 0;
+            left: 60px;
+            right: 0;
+            min-height: 100vh;
+            padding: 50px 0;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        .section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            animation: fadeIn 0.5s ease forwards;
+            width: 100%;
+        }
+
+        .box {
+            background: rgba(7, 11, 20, 0.85);
+            border: 1px solid rgba(79, 195, 247, 0.3);
+            border-radius: 15px;
+            padding: 40px 50px;
+            backdrop-filter: blur(8px);
+            pointer-events: auto;
+            width: fit-content;
+            max-width: 900px;
+            box-sizing: border-box;
+            margin: auto;
+        }
+
+        h1 {
+            font-size: clamp(1.8rem, 4vw, 3.5rem);
+            margin: 0 0 10px 0;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(79, 195, 247, 0.5);
+            word-break: break-word;
+        }
+
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #ccc;
+            margin: 0;
+        }
+
+        .btn {
+            display: inline-block;
+            margin-top: 25px;
+            padding: 12px 30px;
+            background: transparent;
+            color: #4fc3f7;
+            border: 2px solid #4fc3f7;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: background 0.3s, color 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #4fc3f7;
+            color: #070b14;
+            box-shadow: 0 0 15px rgba(79, 195, 247, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- STYLE KONWERTERA --- */
+        .converter-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            text-align: left;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .converter-form label {
+            color: #4fc3f7;
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .converter-form textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(79, 195, 247, 0.4);
+            border-radius: 8px;
+            color: white;
+            font-family: monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+            resize: vertical;
+        }
+
+        .converter-form textarea:focus {
+            outline: none;
+            border-color: #4fc3f7;
+            box-shadow: 0 0 10px rgba(79, 195, 247, 0.2);
+        }
+
+        #input-script {
+            min-height: 250px;
+        }
+
+        #output-script {
+            min-height: 300px;
+            background: rgba(10, 20, 30, 0.8);
+            border: 1px solid #2ecc71;
+        }
+        
+        .converter-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <nav class="sidebar">
+        <ul>
+            <li onclick="goToIndex('home')">
+                <span class="icon">🏠</span>
+                <span class="text">Home</span>
+            </li>
+            <li onclick="goToIndex('about')">
+                <span class="icon">👤</span>
+                <span class="text">O kanale</span>
+            </li>
+            <li onclick="goToIndex('projects')">
+                <span class="icon">💻</span>
+                <span class="text">Projekty</span>
+            </li>
+            <li onclick="goToIndex('contact')">
+                <span class="icon">✉️</span>
+                <span class="text">Kontakt</span>
+            </li>
+            <li class="active-nav">
+                <span class="icon">⚙️</span>
+                <span class="text">Konwerter</span>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <section id="converter" class="section active">
+            <div class="box" style="width: 100%;">
+                <h1>Inteligentny Konwerter</h1>
+                <p>Wklej cały, surowy kod skryptu. Narzędzie samo wyciągnie <strong>@name</strong>, <strong>@version</strong>, <strong>@description</strong> oraz logikę, dopasowując je do Loadera.</p>
+
+                <div class="converter-form">
+                    <div>
+                        <label for="input-script">Wklej surowy kod Tampermonkey:</label>
+                        <textarea id="input-script" placeholder="// ==UserScript==\n// @name Twój Skrypt\n// @version 1.0\n// @description Skrypt robi to i tamto\n// ==/UserScript==\n\n(function() {\n    ...\n})();"></textarea>
+                    </div>
+
+                    <div class="converter-actions">
+                        <button onclick="convertScript()" class="btn" style="margin-top: 0; background: rgba(79, 195, 247, 0.1);">Zkonwertuj Kod</button>
+                    </div>
+
+                    <div id="output-container" style="display: none; margin-top: 20px;">
+                        <label for="output-script" style="color: #2ecc71;">Wynik (Wklej do Loadera pod: // Wklej powyżej skrypt ^^^):</label>
+                        <textarea id="output-script" readonly></textarea>
+                        
+                        <div class="converter-actions">
+                            <button onclick="copyOutput()" class="btn" id="copy-btn" style="margin-top: 0; border-color: #2ecc71; color: #2ecc71;">Kopiuj do schowka</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+<script>
+    function goToIndex(sectionId) {
+        localStorage.setItem('lastActiveSection', sectionId);
+        window.location.href = 'index.html';
+    }
+
+    // TUTAJ JEST TWOJA NOWA FUNKCJA :)
+    function convertScript() {
+        let rawCode = document.getElementById('input-script').value;
+
+        if (!rawCode) {
+            alert("Najpierw wklej kod skryptu!");
+            return;
+        }
+
+        // Domyślne wartości
+        let name = "Nowy Skrypt";
+        let version = "1.0";
+        let desc = "Brak opisu";
+
+        // Inteligentne zczytywanie z tagów Tampermonkey
+        const nameMatch = rawCode.match(/\/\/\s*@name\s+(.+)/i);
+        if (nameMatch) name = nameMatch[1].trim();
+
+        const versionMatch = rawCode.match(/\/\/\s*@version\s+(.+)/i);
+        if (versionMatch) version = versionMatch[1].trim();
+
+        const descMatch = rawCode.match(/\/\/\s*@description\s+(.+)/i);
+        if (descMatch) desc = descMatch[1].trim();
+
+        // Wycinanie nagłówka ==UserScript==
+        let cleanedCode = rawCode.replace(/\/\/\s*==UserScript==[\s\S]*?\/\/\s*==\/UserScript==\s*/i, '').trim();
+        
+        // Agresywne wycinanie funkcji samowywołującej (IIFE), ignorujące śmieci przed i po
+        const iifeRegex1 = /([\s\S]*?)\(\s*function\s*\(\s*\)\s*\{([\s\S]*)\}\s*\)\s*\(\s*\)\s*;?([\s\S]*)/;
+        const iifeRegex2 = /([\s\S]*?)\(\s*function\s*\(\s*\)\s*\{([\s\S]*)\}\s*\(\s*\)\s*\)\s*;?([\s\S]*)/;
+
+        let match = cleanedCode.match(iifeRegex1) || cleanedCode.match(iifeRegex2);
+
+        if (match) {
+            // Łączy to, co było PRZED funkcją, ŚRODEK funkcji i to, co było PO niej
+            cleanedCode = (match[1] + "\n" + match[2] + "\n" + match[3]).trim();
+        }
+
+        // Usunięcie 'use strict' (w loaderze to tylko zaśmieca kod)
+        cleanedCode = cleanedCode.replace(/['"]use strict['"];?\s*/g, '');
+
+        // Formowanie wcięć - cofnięcie kodu o jedną spację w lewo, żeby równo leżał
+        let formattedCode = cleanedCode.split('\n').map(line => {
+            if (line.startsWith('    ')) return line.substring(4);
+            return line;
+        }).join('\n');
+
+        // Ucieczka apostrofów dla bezpiecznego kodu JS
+        const objectKey = name.replace(/'/g, "\\'");
+        const cleanName = name.replace(/'/g, "\\'");
+        const cleanVersion = version.replace(/'/g, "\\'");
+        const cleanDesc = desc.replace(/'/g, "\\'");
+
+        // Budowanie szablonu wyjściowego
+        const outputTemplate = `        '${objectKey}': {
+            name: '${cleanName}',
+            version: '${cleanVersion}',
+            desc: '${cleanDesc}',
+            defaultEnabled: false,
+            run: function() {
+${formattedCode.trim() !== '' ? '                ' + formattedCode.trim().split('\n').join('\n                ') : '                // Kod skryptu'}
+            }
+        },`;
+
+        // Pokazywanie w polu wyjściowym
+        document.getElementById('output-script').value = outputTemplate;
+        document.getElementById('output-container').style.display = 'block';
+    }
+
+    function copyOutput() {
+        const outputTextarea = document.getElementById('output-script');
+        outputTextarea.select();
+        document.execCommand('copy');
+        
+        const btn = document.getElementById('copy-btn');
+        const originalText = btn.innerText;
+        btn.innerText = "Skopiowano!";
+        btn.style.background = "#2ecc71";
+        btn.style.color = "#000";
+        
+        setTimeout(() => {
+            btn.innerText = originalText;
+            btn.style.background = "transparent";
+            btn.style.color = "#2ecc71";
+        }, 2000);
+    }
+
+    // --- KOD ANIMACJI (SIECI) ---
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let bgParticles = [];
+    let clickParticles = [];
+    const MAX_CLICK_PARTICLES = 10; 
+    const BURST_COUNT = 2;          
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let mouse = { x: undefined, y: undefined };
+
+    window.addEventListener('mousemove', function(event) {
+        mouse.x = event.clientX;
+        mouse.y = event.clientY;
+    });
+
+    window.addEventListener('mouseout', function() {
+        mouse.x = undefined;
+        mouse.y = undefined;
+    });
+
+    window.addEventListener('click', function(event) {
+        if(event.clientX < 60) return;
+        for (let i = 0; i < BURST_COUNT; i++) {
+            if (clickParticles.length >= MAX_CLICK_PARTICLES) clickParticles.shift(); 
+            let size = (Math.random() * 2) + 1;
+            let directionX = (Math.random() * 4) - 2; 
+            let directionY = (Math.random() * 4) - 2;
+            clickParticles.push(new Particle(event.x, event.y, directionX, directionY, size, '#4fc3f7'));
+        }
+    });
+
+    window.addEventListener('resize', function() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        init();
+    });
+
+    class Particle {
+        constructor(x, y, directionX, directionY, size, color) {
+            this.x = x; this.y = y; this.directionX = directionX; this.directionY = directionY;
+            this.size = size; this.color = color;
+        }
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+        }
+        update() {
+            if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
+            if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
+            this.x += this.directionX; this.y += this.directionY;
+            this.draw();
+        }
+    }
+
+    function init() {
+        bgParticles = []; clickParticles = [];
+        let numberOfParticles = (canvas.height * canvas.width) / 11000;
+        for (let i = 0; i < numberOfParticles; i++) {
+            let size = (Math.random() * 2) + 1; 
+            let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+            let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+            let directionX = (Math.random() * 1) - 0.5; 
+            let directionY = (Math.random() * 1) - 0.5; 
+            bgParticles.push(new Particle(x, y, directionX, directionY, size, '#4fc3f7'));
+        }
+    }
+
+    function connect() {
+        let allParticles = bgParticles.concat(clickParticles);
+        let opacityValue = 1;
+        for (let a = 0; a < allParticles.length; a++) {
+            for (let b = a; b < allParticles.length; b++) {
+                let distance = ((allParticles[a].x - allParticles[b].x) * (allParticles[a].x - allParticles[b].x))
+                             + ((allParticles[a].y - allParticles[b].y) * (allParticles[a].y - allParticles[b].y));
+                if (distance < (canvas.width/7) * (canvas.height/7)) {
+                    opacityValue = 1 - (distance / 20000);
+                    ctx.strokeStyle = 'rgba(79, 195, 247,' + opacityValue + ')'; 
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(allParticles[a].x, allParticles[a].y);
+                    ctx.lineTo(allParticles[b].x, allParticles[b].y);
+                    ctx.stroke();
+                }
+            }
+            if (mouse.x !== undefined && mouse.y !== undefined) {
+                let mouseDistance = ((allParticles[a].x - mouse.x) * (allParticles[a].x - mouse.x))
+                                  + ((allParticles[a].y - mouse.y) * (allParticles[a].y - mouse.y));
+                if (mouseDistance < 25000) {
+                    let mouseOpacity = 1 - (mouseDistance / 25000);
+                    ctx.strokeStyle = 'rgba(255, 255, 255,' + mouseOpacity + ')';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(allParticles[a].x, allParticles[a].y);
+                    ctx.lineTo(mouse.x, mouse.y);
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        ctx.clearRect(0, 0, innerWidth, innerHeight); 
+        for (let i = 0; i < bgParticles.length; i++) bgParticles[i].update();
+        for (let i = 0; i < clickParticles.length; i++) clickParticles[i].update();
+        connect(); 
+    }
+
+    init(); animate();
+</script>
+
+</body>
+</html>
