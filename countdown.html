@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odliczanie - Blue Graffiti</title>
+    <!-- Czcionka w stylu graffiti oraz podstawowa -->
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Biblioteka Luxon do łatwego zarządzania strefami czasowymi -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #0b1320;
+            --card-bg: rgba(13, 27, 42, 0.7);
+            --accent-cyan: #00e5ff;
+            --accent-blue: #2979ff;
+            --text-color: #e0e0e0;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Roboto', sans-serif;
+            background: radial-gradient(circle at 50% 50%, #1e3a5f 0%, #0b1320 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-family: 'Permanent Marker', cursive;
+            color: var(--accent-cyan);
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8), 0 0 15px var(--accent-blue);
+            text-align: center;
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            background: var(--card-bg);
+            padding: 15px 25px;
+            border-radius: 10px;
+            border-bottom: 3px solid var(--accent-cyan);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .radio-group label {
+            cursor: pointer;
+            margin: 0 10px;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            justify-content: center;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Kafelki z odliczaniem */
+        .countdown-card {
+            background: var(--card-bg);
+            border-left: 5px solid var(--accent-blue);
+            backdrop-filter: blur(5px);
+            border-radius: 12px;
+            padding: 25px;
+            width: 320px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ff1744;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            padding: 5px 10px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: #d50000;
+            box-shadow: 0 0 10px #ff1744;
+        }
+
+        .card-title {
+            font-family: 'Permanent Marker', cursive;
+            font-size: 1.8rem;
+            margin: 0 0 10px 0;
+            color: var(--text-color);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .card-target-date {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+        }
+
+        .timer-display {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .time-box {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            min-width: 55px;
+        }
+
+        .time-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+        }
+
+        .time-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #aaa;
+            margin-top: 3px;
+        }
+
+        /* Formularz dodawania */
+        .add-form-container {
+            background: var(--card-bg);
+            border: 2px dashed var(--accent-blue);
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            margin-top: 50px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .add-form-container h2 {
+            font-family: 'Permanent Marker', cursive;
+            color: var(--accent-blue);
+            margin-top: 0;
+            text-align: center;
+            font-size: 2rem;
+            letter-spacing: 1px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label.main-label {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        .form-group input[type="text"], 
+        .form-group input[type="date"], 
+        .form-group input[type="number"], 
+        .form-group select {
+            padding: 12px;
+            border-radius: 5px;
+            border: 1px solid var(--accent-blue);
+            background: #0b1320;
+            color: white;
+            font-family: 'Roboto', sans-serif;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(41, 121, 255, 0.5);
+        }
+
+        /* Stylizacja własnego pola czasu */
+        .custom-time-picker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .custom-time-picker input {
+            width: 70px;
+            text-align: center;
+        }
+
+        .time-format-toggles {
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+
+        .time-format-toggles label {
+            cursor: pointer;
+            margin-right: 15px;
+        }
+
+        button.submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+
+        button.submit-btn:hover {
+            background: var(--accent-cyan);
+            color: #0b1320;
+            box-shadow: 0 0 15px var(--accent-cyan);
+        }
+
+        .finished {
+            color: #ff1744;
+            font-weight: bold;
+            font-size: 1.3rem;
+            margin-top: 15px;
+            text-shadow: 0 0 10px rgba(255, 23, 68, 0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Moje Odliczania</h1>
+    
+    <!-- Główne ustawienia wyświetlania na stronie -->
+    <div class="controls">
+        <span style="font-weight: bold; color: var(--accent-cyan);">Globalny format czasu:</span>
+        <div class="radio-group">
+            <label><input type="radio" name="timeformat" value="24" checked onchange="changeFormat('24')"> 24h</label>
+            <label><input type="radio" name="timeformat" value="12" onchange="changeFormat('12')"> 12h (AM/PM)</label>
+        </div>
+    </div>
+
+    <!-- Kontener na karty z odliczaniem -->
+    <div class="container" id="countdowns-container">
+        <!-- Generowane dynamicznie przez JS -->
+    </div>
+
+    <!-- Formularz dodawania nowego odliczania -->
+    <div class="add-form-container">
+        <h2>Dodaj nowe wydarzenie</h2>
+        <form id="add-form">
+            <div class="form-group">
+                <label class="main-label" for="title">Nazwa wydarzenia:</label>
+                <input type="text" id="title" required placeholder="np. Premiera gry">
+            </div>
+            
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; align-items: stretch;">
+                <!-- Kolumna daty -->
+                <div class="form-group" style="flex: 1; margin-bottom: 0; display: flex; flex-direction: column;">
+                    <label class="main-label" for="date">Data:</label>
+                    <div style="flex-grow: 1;"></div> 
+                    <input type="date" id="date" required style="box-sizing: border-box; width: 100%;">
+                </div>
+
+                <!-- Kolumna godziny -->
+                <div class="form-group" style="flex: 1.5; margin-bottom: 0; display: flex; flex-direction: column;">
+                    <label class="main-label">Godzina:</label>
+                    <div class="time-format-toggles">
+                        <label>
+                            <input type="radio" name="formTimeFormat" value="24" checked onchange="toggleFormTimeFormat()"> Format 24h
+                        </label>
+                        <label>
+                            <input type="radio" name="formTimeFormat" value="12" onchange="toggleFormTimeFormat()"> Format 12h (AM/PM)
+                        </label>
+                    </div>
+                    <div style="flex-grow: 1;"></div>
+                    <div class="custom-time-picker">
+                        <input type="number" id="form-hour" min="0" max="23" required placeholder="GG">
+                        <span style="font-weight: bold; color: var(--accent-cyan); font-size: 1.5rem;">:</span>
+                        <input type="number" id="form-minute" min="0" max="59" required placeholder="MM">
+                        <select id="form-ampm" style="display: none; padding: 12px; width: auto;">
+                            <option value="AM">AM</option>
+                            <option value="PM">PM</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="main-label" for="timezone">Strefa czasowa (gdzie odbywa się wydarzenie):</label>
+                <select id="timezone" required>
+                    <option value="Europe/Warsaw">Polska (CEST/CET)</option>
+                    <option value="America/New_York">Wschodnie USA (ET)</option>
+                    <option value="America/Los_Angeles">Zachodnie USA (PT)</option>
+                    <option value="Europe/London">Wielka Brytania (GMT/BST)</option>
+                    <option value="Asia/Tokyo">Japonia (JST)</option>
+                    <option value="UTC">Uniwersalny Czas Koordynowany (UTC)</option>
+                </select>
+            </div>
+            <button type="submit" class="submit-btn">Dodaj odliczanie</button>
+        </form>
+    </div>
+
+    <script>
+        const DateTime = luxon.DateTime;
+        let countdowns = [];
+        let timeFormat = localStorage.getItem('timeFormat') || '24';
+        
+        document.querySelector(`input[name="timeformat"][value="${timeFormat}"]`).checked = true;
+
+        function toggleFormTimeFormat() {
+            const format = document.querySelector('input[name="formTimeFormat"]:checked').value;
+            const hourInput = document.getElementById('form-hour');
+            const ampmSelect = document.getElementById('form-ampm');
+            
+            let currentHour = parseInt(hourInput.value);
+
+            if (format === '12') {
+                hourInput.min = 1;
+                hourInput.max = 12;
+                ampmSelect.style.display = 'block';
+                
+                if (!isNaN(currentHour)) {
+                    if (currentHour === 0) {
+                        hourInput.value = 12;
+                        ampmSelect.value = 'AM';
+                    } else if (currentHour > 12) {
+                        hourInput.value = currentHour - 12;
+                        ampmSelect.value = 'PM';
+                    } else if (currentHour === 12) {
+                        ampmSelect.value = 'PM';
+                    } else {
+                        ampmSelect.value = 'AM';
+                    }
+                }
+            } else {
+                hourInput.min = 0;
+                hourInput.max = 23;
+                ampmSelect.style.display = 'none';
+
+                if (!isNaN(currentHour)) {
+                    if (ampmSelect.value === 'PM' && currentHour < 12) {
+                        hourInput.value = currentHour + 12;
+                    } else if (ampmSelect.value === 'AM' && currentHour === 12) {
+                        hourInput.value = 0;
+                    }
+                }
+            }
+        }
+
+        // --- ZABEZPIECZENIE: Zmniejszanie liczby w locie oraz usuwanie nadmiaru zer ---
+        document.getElementById('form-hour').addEventListener('input', function() {
+            const format = document.querySelector('input[name="formTimeFormat"]:checked').value;
+            
+            // Limit znaków i obcinanie zer (np. 001 -> 01)
+            if (this.value.length > 2) {
+                let parsed = parseInt(this.value);
+                if (!isNaN(parsed)) {
+                    this.value = parsed.toString().padStart(2, '0');
+                }
+            }
+
+            let val = parseInt(this.value);
+            if (!isNaN(val)) {
+                if (format === '12' && val > 12) this.value = 12;
+                if (format === '24' && val > 23) this.value = 23;
+            }
+        });
+
+        document.getElementById('form-minute').addEventListener('input', function() {
+            // Limit znaków i obcinanie zer
+            if (this.value.length > 2) {
+                let parsed = parseInt(this.value);
+                if (!isNaN(parsed)) {
+                    this.value = parsed.toString().padStart(2, '0');
+                }
+            }
+
+            let val = parseInt(this.value);
+            if (!isNaN(val) && val > 59) this.value = 59;
+        });
+
+        // --- BONUS: Automatyczne dodawanie zera (blur) po kliknięciu poza polem (np. z '5' na '05') ---
+        function formatToTwoDigits(element) {
+            let val = parseInt(element.value);
+            if (!isNaN(val)) {
+                element.value = val.toString().padStart(2, '0');
+            }
+        }
+        document.getElementById('form-hour').addEventListener('blur', function() { formatToTwoDigits(this); });
+        document.getElementById('form-minute').addEventListener('blur', function() { formatToTwoDigits(this); });
+        // -------------------------------------------------------------------------------------------------
+
+        function init() {
+            const saved = localStorage.getItem('myCountdowns_v2'); 
+            if (saved) {
+                countdowns = JSON.parse(saved);
+            } else {
+                countdowns = [
+                    {
+                        id: 'pre-1',
+                        title: "GTA VI EXTENDED LOOK - NETFLIX",
+                        isoDate: DateTime.fromISO("2026-08-27T15:00:00", { zone: "America/New_York" }).toUTC().toISO(),
+                        isPredefined: true
+                    },
+                    {
+                        id: 'pre-2',
+                        title: "GTA VI EXTENDED LOOK - FREE",
+                        isoDate: DateTime.fromISO("2026-08-27T21:00:00", { zone: "America/New_York" }).toUTC().toISO(),
+                        isPredefined: true
+                    }
+                ];
+                saveToLocal();
+            }
+            renderCountdowns();
+            setInterval(updateTimers, 1000);
+        }
+
+        function changeFormat(format) {
+            timeFormat = format;
+            localStorage.setItem('timeFormat', format);
+            renderCountdowns(); 
+        }
+
+        function saveToLocal() {
+            localStorage.setItem('myCountdowns_v2', JSON.stringify(countdowns)); 
+        }
+
+        function deleteCountdown(id) {
+            countdowns = countdowns.filter(c => c.id !== id);
+            saveToLocal();
+            renderCountdowns();
+        }
+
+        function renderCountdowns() {
+            const container = document.getElementById('countdowns-container');
+            container.innerHTML = '';
+
+            countdowns.forEach(item => {
+                const targetDate = DateTime.fromISO(item.isoDate).setZone('local');
+                const formatString = timeFormat === '24' ? "dd.MM.yyyy, HH:mm" : "dd.MM.yyyy, h:mm a";
+                const displayDateStr = targetDate.toFormat(formatString) + ` (${targetDate.offsetNameShort})`;
+
+                const card = document.createElement('div');
+                card.className = 'countdown-card';
+                
+                let deleteBtnHtml = '';
+                if (!item.isPredefined) {
+                    deleteBtnHtml = `<button class="delete-btn" onclick="deleteCountdown('${item.id}')">X</button>`;
+                }
+
+                card.innerHTML = `
+                    ${deleteBtnHtml}
+                    <h3 class="card-title">${item.title}</h3>
+                    <div class="card-target-date">W Twoim czasie: ${displayDateStr}</div>
+                    <div class="timer-display" id="timer-${item.id}"></div>
+                `;
+                container.appendChild(card);
+            });
+            updateTimers(); 
+        }
+
+        function updateTimers() {
+            const now = DateTime.now();
+
+            countdowns.forEach(item => {
+                const target = DateTime.fromISO(item.isoDate);
+                const timerContainer = document.getElementById(`timer-${item.id}`);
+                
+                if (!timerContainer) return;
+
+                if (target <= now) {
+                    timerContainer.innerHTML = '<div class="finished">Wydarzenie trwa lub minęło!</div>';
+                    return;
+                }
+
+                const diff = target.diff(now, ['days', 'hours', 'minutes', 'seconds']);
+
+                const d = Math.floor(diff.days);
+                const h = Math.floor(diff.hours);
+                const m = Math.floor(diff.minutes);
+                const s = Math.floor(diff.seconds);
+
+                timerContainer.innerHTML = `
+                    <div class="time-box">
+                        <div class="time-value">${d}</div>
+                        <div class="time-label">Dni</div>
+                    </div>
+                    <div class="time-box">
+                        <div class="time-value">${h.toString().padStart(2, '0')}</div>
+                        <div class="time-label">Godz</div>
+                    </div>
+                    <div class="time-box">
+                        <div class="time-value">${m.toString().padStart(2, '0')}</div>
+                        <div class="time-label">Min</div>
+                    </div>
+                    <div class="time-box">
+                        <div class="time-value">${s.toString().padStart(2, '0')}</div>
+                        <div class="time-label">Sek</div>
+                    </div>
+                `;
+            });
+        }
+
+        // Obsługa wysyłania formularza
+        document.getElementById('add-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const dateVal = document.getElementById('date').value;
+            const zoneVal = document.getElementById('timezone').value;
+
+            let inputHour = parseInt(document.getElementById('form-hour').value);
+            const inputMinute = parseInt(document.getElementById('form-minute').value);
+            const formFormat = document.querySelector('input[name="formTimeFormat"]:checked').value;
+            const ampm = document.getElementById('form-ampm').value;
+
+            // Walidacja przed wysłaniem (jeśli ktoś pominie limity w locie)
+            if (formFormat === '12' && (inputHour < 1 || inputHour > 12)) {
+                alert("Dla formatu 12h, godzina musi być w przedziale od 1 do 12!");
+                return;
+            }
+            if (formFormat === '24' && (inputHour < 0 || inputHour > 23)) {
+                alert("Dla formatu 24h, godzina musi być w przedziale od 0 do 23!");
+                return;
+            }
+            if (inputMinute < 0 || inputMinute > 59) {
+                alert("Minuty muszą być wartością od 0 do 59!");
+                return;
+            }
+
+            if (formFormat === '12') {
+                if (ampm === 'PM' && inputHour < 12) {
+                    inputHour += 12;
+                } else if (ampm === 'AM' && inputHour === 12) {
+                    inputHour = 0;
+                }
+            }
+
+            const timeVal = `${inputHour.toString().padStart(2, '0')}:${inputMinute.toString().padStart(2, '0')}:00`;
+            const localIsoString = `${dateVal}T${timeVal}`;
+            
+            const dtInZone = DateTime.fromISO(localIsoString, { zone: zoneVal });
+
+            if (!dtInZone.isValid) {
+                alert("Wprowadzono niepoprawną datę/czas!");
+                return;
+            }
+
+            const finalUtcIso = dtInZone.toUTC().toISO();
+
+            const newCountdown = {
+                id: Date.now().toString(),
+                title: title,
+                isoDate: finalUtcIso,
+                isPredefined: false
+            };
+
+            countdowns.push(newCountdown);
+            saveToLocal();
+            renderCountdowns();
+            
+            this.reset();
+            document.querySelector('input[name="formTimeFormat"][value="24"]').checked = true;
+            toggleFormTimeFormat();
+        });
+
+        init();
+    </script>
+</body>
+</html>
