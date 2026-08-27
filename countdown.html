@@ -42,6 +42,9 @@
 
         .controls {
             display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
             gap: 20px;
             margin-bottom: 30px;
             background: var(--card-bg);
@@ -49,6 +52,9 @@
             border-radius: 10px;
             border-bottom: 3px solid var(--accent-cyan);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
         }
 
         .radio-group label {
@@ -56,6 +62,26 @@
             margin: 0 10px;
             font-weight: bold;
             color: var(--text-color);
+        }
+
+        /* --- STYLIZACJA ZEGARKA NA ŻYWO --- */
+        .live-clock-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 229, 255, 0.2);
+        }
+
+        #live-clock {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+            /* tabular-nums sprawia, że wszystkie cyfry mają tę samą szerokość, co zapobiega "skakaniu" milisekund */
+            font-variant-numeric: tabular-nums; 
         }
 
         .container {
@@ -195,7 +221,6 @@
             box-shadow: 0 0 10px rgba(41, 121, 255, 0.5);
         }
 
-        /* Stylizacja własnego pola czasu */
         .custom-time-picker {
             display: flex;
             align-items: center;
@@ -250,12 +275,19 @@
 
     <h1>Moje Odliczania</h1>
     
-    <!-- Główne ustawienia wyświetlania na stronie -->
+    <!-- Główne ustawienia wyświetlania z zegarkiem na żywo -->
     <div class="controls">
-        <span style="font-weight: bold; color: var(--accent-cyan);">Globalny format czasu:</span>
-        <div class="radio-group">
-            <label><input type="radio" name="timeformat" value="24" checked onchange="changeFormat('24')"> 24h</label>
-            <label><input type="radio" name="timeformat" value="12" onchange="changeFormat('12')"> 12h (AM/PM)</label>
+        <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+            <span style="font-weight: bold; color: var(--accent-cyan);">Globalny format czasu:</span>
+            <div class="radio-group">
+                <label><input type="radio" name="timeformat" value="24" checked onchange="changeFormat('24')"> 24h</label>
+                <label><input type="radio" name="timeformat" value="12" onchange="changeFormat('12')"> 12h (AM/PM)</label>
+            </div>
+        </div>
+        
+        <div class="live-clock-container">
+            <span style="color: #aaa; font-size: 0.8rem; text-transform: uppercase;">Aktualny czas:</span>
+            <span id="live-clock">00:00:00:00</span>
         </div>
     </div>
 
@@ -325,7 +357,24 @@
         let countdowns = [];
         let timeFormat = localStorage.getItem('timeFormat') || '24';
         
+        let timeOffset = 0; 
+        
         document.querySelector(`input[name="timeformat"][value="${timeFormat}"]`).checked = true;
+
+        async function syncTime() {
+            try {
+                const response = await fetch('https://worldtimeapi.org/api/ip');
+                const data = await response.json();
+
+                const serverTime = DateTime.fromISO(data.datetime).toMillis();
+                const localTime = DateTime.now().toMillis();
+
+                timeOffset = serverTime - localTime;
+                console.log("Czas zsynchronizowany z serwerem pomyślnie. Zastosowane przesunięcie: " + timeOffset + "ms");
+            } catch (error) {
+                console.warn("API czasu niedostępne. Strona kontynuuje działanie używając czasu lokalnego komputera.", error);
+            }
+        }
 
         function toggleFormTimeFormat() {
             const format = document.querySelector('input[name="formTimeFormat"]:checked').value;
@@ -367,11 +416,9 @@
             }
         }
 
-        // --- ZABEZPIECZENIE: Zmniejszanie liczby w locie oraz usuwanie nadmiaru zer ---
         document.getElementById('form-hour').addEventListener('input', function() {
             const format = document.querySelector('input[name="formTimeFormat"]:checked').value;
             
-            // Limit znaków i obcinanie zer (np. 001 -> 01)
             if (this.value.length > 2) {
                 let parsed = parseInt(this.value);
                 if (!isNaN(parsed)) {
@@ -387,7 +434,6 @@
         });
 
         document.getElementById('form-minute').addEventListener('input', function() {
-            // Limit znaków i obcinanie zer
             if (this.value.length > 2) {
                 let parsed = parseInt(this.value);
                 if (!isNaN(parsed)) {
@@ -399,7 +445,6 @@
             if (!isNaN(val) && val > 59) this.value = 59;
         });
 
-        // --- BONUS: Automatyczne dodawanie zera (blur) po kliknięciu poza polem (np. z '5' na '05') ---
         function formatToTwoDigits(element) {
             let val = parseInt(element.value);
             if (!isNaN(val)) {
@@ -408,9 +453,30 @@
         }
         document.getElementById('form-hour').addEventListener('blur', function() { formatToTwoDigits(this); });
         document.getElementById('form-minute').addEventListener('blur', function() { formatToTwoDigits(this); });
-        // -------------------------------------------------------------------------------------------------
+
+        // --- POPRAWIONA FUNKCJA ZEGARA ---
+        function updateLiveClock() {
+            const clockEl = document.getElementById('live-clock');
+            if (!clockEl) return;
+
+            const now = DateTime.now().plus({ milliseconds: timeOffset });
+            
+            // Ręczne obliczanie 2-cyfrowych setnych części sekundy (00-99)
+            // Pobieramy milisekundy, dzielimy przez 10 i dodajemy zero z przodu jeśli trzeba
+            const centiseconds = Math.floor(now.millisecond / 10).toString().padStart(2, '0');
+            
+            if (timeFormat === '12') {
+                // Składamy zegarek manualnie dodając obcięte ułamki sekund oraz znacznik AM/PM
+                clockEl.innerText = now.toFormat('hh:mm:ss') + ':' + centiseconds + ' ' + now.toFormat('a'); 
+            } else {
+                clockEl.innerText = now.toFormat('HH:mm:ss') + ':' + centiseconds;
+            }
+        }
+        // ---------------------------------
 
         function init() {
+            syncTime(); 
+
             const saved = localStorage.getItem('myCountdowns_v2'); 
             if (saved) {
                 countdowns = JSON.parse(saved);
@@ -432,7 +498,9 @@
                 saveToLocal();
             }
             renderCountdowns();
+            
             setInterval(updateTimers, 1000);
+            setInterval(updateLiveClock, 30);
         }
 
         function changeFormat(format) {
@@ -480,7 +548,7 @@
         }
 
         function updateTimers() {
-            const now = DateTime.now();
+            const now = DateTime.now().plus({ milliseconds: timeOffset });
 
             countdowns.forEach(item => {
                 const target = DateTime.fromISO(item.isoDate);
@@ -521,7 +589,6 @@
             });
         }
 
-        // Obsługa wysyłania formularza
         document.getElementById('add-form').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -534,7 +601,6 @@
             const formFormat = document.querySelector('input[name="formTimeFormat"]:checked').value;
             const ampm = document.getElementById('form-ampm').value;
 
-            // Walidacja przed wysłaniem (jeśli ktoś pominie limity w locie)
             if (formFormat === '12' && (inputHour < 1 || inputHour > 12)) {
                 alert("Dla formatu 12h, godzina musi być w przedziale od 1 do 12!");
                 return;
