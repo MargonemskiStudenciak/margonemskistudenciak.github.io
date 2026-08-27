@@ -28,6 +28,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            position: relative; 
         }
 
         h1 {
@@ -38,6 +39,44 @@
             font-size: 3.5rem;
             margin-bottom: 20px;
             letter-spacing: 2px;
+            margin-top: 20px;
+        }
+
+        .lang-switcher-wrapper {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            .lang-switcher-wrapper {
+                position: relative;
+                top: 0;
+                right: 0;
+                align-self: flex-end;
+                margin-bottom: 10px;
+            }
+            h1 { margin-top: 0; }
+        }
+
+        .lang-switcher {
+            background: var(--card-bg);
+            color: var(--accent-cyan);
+            border: 1px solid var(--accent-blue);
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-family: 'Roboto', sans-serif;
+            font-weight: bold;
+            cursor: pointer;
+            outline: none;
+            transition: 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        .lang-switcher:hover, .lang-switcher:focus {
+            box-shadow: 0 0 10px rgba(41, 121, 255, 0.5);
+            background: #0b1320;
         }
 
         .controls {
@@ -64,7 +103,6 @@
             color: var(--text-color);
         }
 
-        /* --- STYLIZACJA ZEGARKA NA ŻYWO --- */
         .live-clock-container {
             display: flex;
             align-items: center;
@@ -80,7 +118,6 @@
             font-weight: bold;
             color: var(--accent-cyan);
             text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
-            /* tabular-nums sprawia, że wszystkie cyfry mają tę samą szerokość, co zapobiega "skakaniu" milisekund */
             font-variant-numeric: tabular-nums; 
         }
 
@@ -93,7 +130,6 @@
             max-width: 1200px;
         }
 
-        /* Kafelki z odliczaniem */
         .countdown-card {
             background: var(--card-bg);
             border-left: 5px solid var(--accent-blue);
@@ -162,6 +198,12 @@
             text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
         }
 
+        /* --- WKLEJ TO TUTAJ: --- */
+        .time-value.past {
+            color: #ff1744; /* Neonowy czerwony */
+            text-shadow: 0 0 8px rgba(255, 23, 68, 0.6); /* Czerwona poświata */
+        }
+
         .time-label {
             font-size: 0.75rem;
             text-transform: uppercase;
@@ -169,7 +211,6 @@
             margin-top: 3px;
         }
 
-        /* Formularz dodawania */
         .add-form-container {
             background: var(--card-bg);
             border: 2px dashed var(--accent-blue);
@@ -261,67 +302,65 @@
             color: #0b1320;
             box-shadow: 0 0 15px var(--accent-cyan);
         }
-
-        .finished {
-            color: #ff1744;
-            font-weight: bold;
-            font-size: 1.3rem;
-            margin-top: 15px;
-            text-shadow: 0 0 10px rgba(255, 23, 68, 0.6);
-        }
     </style>
 </head>
 <body>
 
-    <h1>Moje Odliczania</h1>
+    <div class="lang-switcher-wrapper">
+        <select id="lang-switcher" class="lang-switcher" onchange="changeLanguage(this.value)">
+            <option value="pl">🇵🇱 Polski</option>
+            <option value="en">🇬🇧 English</option>
+            <option value="de">🇩🇪 Deutsch</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="ja">🇯🇵 日本語</option>
+            <option value="zh">🇨🇳 中文</option>
+        </select>
+    </div>
+
+    <h1 data-i18n="title">Moje Odliczania</h1>
     
-    <!-- Główne ustawienia wyświetlania z zegarkiem na żywo -->
     <div class="controls">
         <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-            <span style="font-weight: bold; color: var(--accent-cyan);">Globalny format czasu:</span>
+            <span style="font-weight: bold; color: var(--accent-cyan);" data-i18n="globalFormat">Globalny format czasu:</span>
             <div class="radio-group">
-                <label><input type="radio" name="timeformat" value="24" checked onchange="changeFormat('24')"> 24h</label>
-                <label><input type="radio" name="timeformat" value="12" onchange="changeFormat('12')"> 12h (AM/PM)</label>
+                <label><input type="radio" name="timeformat" value="24" checked onchange="changeFormat('24')"> <span data-i18n="format24">24h</span></label>
+                <label><input type="radio" name="timeformat" value="12" onchange="changeFormat('12')"> <span data-i18n="format12">12h (AM/PM)</span></label>
             </div>
         </div>
         
         <div class="live-clock-container">
-            <span style="color: #aaa; font-size: 0.8rem; text-transform: uppercase;">Aktualny czas:</span>
+            <span style="color: #aaa; font-size: 0.8rem; text-transform: uppercase;" data-i18n="liveClock">Aktualny czas:</span>
             <span id="live-clock">00:00:00:00</span>
         </div>
     </div>
 
-    <!-- Kontener na karty z odliczaniem -->
     <div class="container" id="countdowns-container">
-        <!-- Generowane dynamicznie przez JS -->
     </div>
 
-    <!-- Formularz dodawania nowego odliczania -->
     <div class="add-form-container">
-        <h2>Dodaj nowe wydarzenie</h2>
+        <h2 data-i18n="addEventTitle">Dodaj nowe wydarzenie</h2>
         <form id="add-form">
             <div class="form-group">
-                <label class="main-label" for="title">Nazwa wydarzenia:</label>
-                <input type="text" id="title" required placeholder="np. Premiera gry">
+                <label class="main-label" for="title" data-i18n="eventName">Nazwa wydarzenia:</label>
+                <input type="text" id="title" required data-i18n="eventNamePlaceholder" placeholder="np. Premiera gry">
             </div>
             
             <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; align-items: stretch;">
-                <!-- Kolumna daty -->
                 <div class="form-group" style="flex: 1; margin-bottom: 0; display: flex; flex-direction: column;">
-                    <label class="main-label" for="date">Data:</label>
+                    <label class="main-label" for="date" data-i18n="dateLabel">Data:</label>
                     <div style="flex-grow: 1;"></div> 
                     <input type="date" id="date" required style="box-sizing: border-box; width: 100%;">
                 </div>
 
-                <!-- Kolumna godziny -->
                 <div class="form-group" style="flex: 1.5; margin-bottom: 0; display: flex; flex-direction: column;">
-                    <label class="main-label">Godzina:</label>
+                    <label class="main-label" data-i18n="timeLabel">Godzina:</label>
                     <div class="time-format-toggles">
                         <label>
-                            <input type="radio" name="formTimeFormat" value="24" checked onchange="toggleFormTimeFormat()"> Format 24h
+                            <input type="radio" name="formTimeFormat" value="24" checked onchange="toggleFormTimeFormat()"> <span data-i18n="format24">24h</span>
                         </label>
                         <label>
-                            <input type="radio" name="formTimeFormat" value="12" onchange="toggleFormTimeFormat()"> Format 12h (AM/PM)
+                            <input type="radio" name="formTimeFormat" value="12" onchange="toggleFormTimeFormat()"> <span data-i18n="format12">12h (AM/PM)</span>
                         </label>
                     </div>
                     <div style="flex-grow: 1;"></div>
@@ -338,17 +377,17 @@
             </div>
 
             <div class="form-group">
-                <label class="main-label" for="timezone">Strefa czasowa (gdzie odbywa się wydarzenie):</label>
+                <label class="main-label" for="timezone" data-i18n="tzLabel">Strefa czasowa (gdzie odbywa się wydarzenie):</label>
                 <select id="timezone" required>
-                    <option value="Europe/Warsaw">Polska (CEST/CET)</option>
-                    <option value="America/New_York">Wschodnie USA (ET)</option>
-                    <option value="America/Los_Angeles">Zachodnie USA (PT)</option>
-                    <option value="Europe/London">Wielka Brytania (GMT/BST)</option>
-                    <option value="Asia/Tokyo">Japonia (JST)</option>
-                    <option value="UTC">Uniwersalny Czas Koordynowany (UTC)</option>
+                    <option value="Europe/Warsaw">Europe/Warsaw (CET/CEST)</option>
+                    <option value="America/New_York">America/New_York (ET)</option>
+                    <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+                    <option value="Europe/London">Europe/London (GMT/BST)</option>
+                    <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                    <option value="UTC">UTC (Coordinated Universal Time)</option>
                 </select>
             </div>
-            <button type="submit" class="submit-btn">Dodaj odliczanie</button>
+            <button type="submit" class="submit-btn" data-i18n="addBtn">Dodaj odliczanie</button>
         </form>
     </div>
 
@@ -356,9 +395,199 @@
         const DateTime = luxon.DateTime;
         let countdowns = [];
         let timeFormat = localStorage.getItem('timeFormat') || '24';
-        
         let timeOffset = 0; 
         
+        const translations = {
+            pl: {
+                title: "Moje Odliczania",
+                globalFormat: "Globalny format czasu:",
+                liveClock: "Aktualny czas:",
+                addEventTitle: "Dodaj nowe wydarzenie",
+                eventName: "Nazwa wydarzenia:",
+                eventNamePlaceholder: "np. Premiera gry",
+                dateLabel: "Data:",
+                timeLabel: "Godzina:",
+                tzLabel: "Strefa czasowa (gdzie odbywa się wydarzenie):",
+                addBtn: "DODAJ ODLICZANIE",
+                days: "DNI",
+                hours: "GODZ",
+                minutes: "MIN",
+                seconds: "SEK",
+                inYourTime: "W Twoim czasie:",
+                format24: "24h",
+                format12: "12h (AM/PM)",
+                err12h: "Dla formatu 12h, godzina musi być w przedziale od 1 do 12!",
+                err24h: "Dla formatu 24h, godzina musi być w przedziale od 0 do 23!",
+                errMin: "Minuty muszą być wartością od 0 do 59!",
+                errInvalid: "Wprowadzono niepoprawną datę/czas!"
+            },
+            en: {
+                title: "My Countdowns",
+                globalFormat: "Global time format:",
+                liveClock: "Current time:",
+                addEventTitle: "Add new event",
+                eventName: "Event name:",
+                eventNamePlaceholder: "e.g. Game Release",
+                dateLabel: "Date:",
+                timeLabel: "Time:",
+                tzLabel: "Timezone (where the event takes place):",
+                addBtn: "ADD COUNTDOWN",
+                days: "DAYS",
+                hours: "HRS",
+                minutes: "MIN",
+                seconds: "SEC",
+                inYourTime: "In your time:",
+                format24: "24h",
+                format12: "12h (AM/PM)",
+                err12h: "For 12h format, hour must be between 1 and 12!",
+                err24h: "For 24h format, hour must be between 0 and 23!",
+                errMin: "Minutes must be between 0 and 59!",
+                errInvalid: "Invalid date/time entered!"
+            },
+            de: {
+                title: "Meine Countdowns",
+                globalFormat: "Globales Zeitformat:",
+                liveClock: "Aktuelle Zeit:",
+                addEventTitle: "Neues Ereignis hinzufügen",
+                eventName: "Ereignisname:",
+                eventNamePlaceholder: "z.B. Spielveröffentlichung",
+                dateLabel: "Datum:",
+                timeLabel: "Uhrzeit:",
+                tzLabel: "Zeitzone (wo das Ereignis stattfindet):",
+                addBtn: "COUNTDOWN HINZUFÜGEN",
+                days: "TAGE",
+                hours: "STD",
+                minutes: "MIN",
+                seconds: "SEK",
+                inYourTime: "In deiner Zeit:",
+                format24: "24h",
+                format12: "12h (AM/PM)",
+                err12h: "Für das 12h-Format muss die Stunde zwischen 1 und 12 liegen!",
+                err24h: "Für das 24h-Format muss die Stunde zwischen 0 und 23 liegen!",
+                errMin: "Minuten müssen zwischen 0 und 59 liegen!",
+                errInvalid: "Ungültiges Datum/Uhrzeit eingegeben!"
+            },
+            es: {
+                title: "Mis Cuentas Regresivas",
+                globalFormat: "Formato de hora global:",
+                liveClock: "Hora actual:",
+                addEventTitle: "Añadir nuevo evento",
+                eventName: "Nombre del evento:",
+                eventNamePlaceholder: "ej. Lanzamiento del juego",
+                dateLabel: "Fecha:",
+                timeLabel: "Hora:",
+                tzLabel: "Zona horaria (donde ocurre el evento):",
+                addBtn: "AÑADIR CUENTA REGRESIVA",
+                days: "DÍAS",
+                hours: "HORAS",
+                minutes: "MIN",
+                seconds: "SEG",
+                inYourTime: "En tu hora:",
+                format24: "24h",
+                format12: "12h (AM/PM)",
+                err12h: "¡Para el formato 12h, la hora debe estar entre 1 y 12!",
+                err24h: "¡Para el formato 24h, la hora debe estar entre 0 y 23!",
+                errMin: "¡Los minutos deben estar entre 0 y 59!",
+                errInvalid: "¡Fecha/hora introducida no válida!"
+            },
+            fr: {
+                title: "Mes Comptes à Rebours",
+                globalFormat: "Format d'heure global:",
+                liveClock: "Heure actuelle:",
+                addEventTitle: "Ajouter un nouvel événement",
+                eventName: "Nom de l'événement:",
+                eventNamePlaceholder: "ex. Sortie du jeu",
+                dateLabel: "Date:",
+                timeLabel: "Heure:",
+                tzLabel: "Fuseau horaire (où se déroule l'événement):",
+                addBtn: "AJOUTER LE COMPTE",
+                days: "JOURS",
+                hours: "HEURES",
+                minutes: "MIN",
+                seconds: "SEC",
+                inYourTime: "À votre heure:",
+                format24: "24h",
+                format12: "12h (AM/PM)",
+                err12h: "Pour le format 12h, l'heure doit être entre 1 et 12!",
+                err24h: "Pour le format 24h, l'heure doit être entre 0 et 23!",
+                errMin: "Les minutes doivent être entre 0 et 59!",
+                errInvalid: "Date/heure saisie invalide!"
+            },
+            ja: {
+                title: "マイカウントダウン",
+                globalFormat: "時間形式:",
+                liveClock: "現在時刻:",
+                addEventTitle: "新しいイベントを追加",
+                eventName: "イベント名:",
+                eventNamePlaceholder: "例：ゲームのリリース",
+                dateLabel: "日付:",
+                timeLabel: "時間:",
+                tzLabel: "タイムゾーン (イベント開催地):",
+                addBtn: "カウントダウンを追加",
+                days: "日",
+                hours: "時間",
+                minutes: "分",
+                seconds: "秒",
+                inYourTime: "あなたの時間:",
+                format24: "24h",
+                format12: "12h (AM/PM)",
+                err12h: "12時間形式の場合、時間は1〜12の間である必要があります！",
+                err24h: "24時間形式の場合、時間は0〜23の間である必要があります！",
+                errMin: "分は0〜59の間である必要があります！",
+                errInvalid: "無効な日付/時間が入力されました！"
+            },
+            zh: {
+                title: "我的倒计时",
+                globalFormat: "全局时间格式：",
+                liveClock: "当前时间：",
+                addEventTitle: "添加新事件",
+                eventName: "事件名称：",
+                eventNamePlaceholder: "例如：游戏发布",
+                dateLabel: "日期：",
+                timeLabel: "时间：",
+                tzLabel: "时区（事件发生地）：",
+                addBtn: "添加倒计时",
+                days: "天",
+                hours: "小时",
+                minutes: "分钟",
+                seconds: "秒",
+                inYourTime: "你的时间：",
+                format24: "24h",
+                format12: "12h (AM/PM)",
+                err12h: "对于12小时制，小时必须在1到12之间！",
+                err24h: "对于24小时制，小时必须在0到23之间！",
+                errMin: "分钟必须在0到59之间！",
+                errInvalid: "输入的日期/时间无效！"
+            }
+        };
+
+        let currentLang = localStorage.getItem('appLang') || 'pl';
+
+        function applyLanguage() {
+            document.getElementById('lang-switcher').value = currentLang;
+            const dict = translations[currentLang];
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[key]) {
+                    if (el.tagName === 'INPUT' && el.hasAttribute('placeholder')) {
+                        el.placeholder = dict[key];
+                    } else {
+                        el.innerText = dict[key];
+                    }
+                }
+            });
+
+            luxon.Settings.defaultLocale = currentLang;
+            renderCountdowns(); 
+        }
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('appLang', lang);
+            applyLanguage();
+        }
+
         document.querySelector(`input[name="timeformat"][value="${timeFormat}"]`).checked = true;
 
         async function syncTime() {
@@ -454,27 +683,22 @@
         document.getElementById('form-hour').addEventListener('blur', function() { formatToTwoDigits(this); });
         document.getElementById('form-minute').addEventListener('blur', function() { formatToTwoDigits(this); });
 
-        // --- POPRAWIONA FUNKCJA ZEGARA ---
         function updateLiveClock() {
             const clockEl = document.getElementById('live-clock');
             if (!clockEl) return;
 
             const now = DateTime.now().plus({ milliseconds: timeOffset });
-            
-            // Ręczne obliczanie 2-cyfrowych setnych części sekundy (00-99)
-            // Pobieramy milisekundy, dzielimy przez 10 i dodajemy zero z przodu jeśli trzeba
             const centiseconds = Math.floor(now.millisecond / 10).toString().padStart(2, '0');
             
             if (timeFormat === '12') {
-                // Składamy zegarek manualnie dodając obcięte ułamki sekund oraz znacznik AM/PM
                 clockEl.innerText = now.toFormat('hh:mm:ss') + ':' + centiseconds + ' ' + now.toFormat('a'); 
             } else {
                 clockEl.innerText = now.toFormat('HH:mm:ss') + ':' + centiseconds;
             }
         }
-        // ---------------------------------
 
         function init() {
+            applyLanguage();
             syncTime(); 
 
             const saved = localStorage.getItem('myCountdowns_v2'); 
@@ -522,6 +746,7 @@
         function renderCountdowns() {
             const container = document.getElementById('countdowns-container');
             container.innerHTML = '';
+            const dict = translations[currentLang];
 
             countdowns.forEach(item => {
                 const targetDate = DateTime.fromISO(item.isoDate).setZone('local');
@@ -539,7 +764,7 @@
                 card.innerHTML = `
                     ${deleteBtnHtml}
                     <h3 class="card-title">${item.title}</h3>
-                    <div class="card-target-date">W Twoim czasie: ${displayDateStr}</div>
+                    <div class="card-target-date">${dict.inYourTime} ${displayDateStr}</div>
                     <div class="timer-display" id="timer-${item.id}"></div>
                 `;
                 container.appendChild(card);
@@ -547,8 +772,10 @@
             updateTimers(); 
         }
 
+        // --- ZMODYFIKOWANA LOGIKA ODLICZANIA ---
         function updateTimers() {
             const now = DateTime.now().plus({ milliseconds: timeOffset });
+            const dict = translations[currentLang];
 
             countdowns.forEach(item => {
                 const target = DateTime.fromISO(item.isoDate);
@@ -556,38 +783,49 @@
                 
                 if (!timerContainer) return;
 
-                if (target <= now) {
-                    timerContainer.innerHTML = '<div class="finished">Wydarzenie trwa lub minęło!</div>';
-                    return;
-                }
+                let isPast = false;
+                let diff;
 
-                const diff = target.diff(now, ['days', 'hours', 'minutes', 'seconds']);
+                // Sprawdzamy, czy czas minął. Jeśli tak, odwracamy kolejność obliczeń.
+                if (target <= now) {
+                    isPast = true;
+                    diff = now.diff(target, ['days', 'hours', 'minutes', 'seconds']);
+                } else {
+                    diff = target.diff(now, ['days', 'hours', 'minutes', 'seconds']);
+                }
 
                 const d = Math.floor(diff.days);
                 const h = Math.floor(diff.hours);
                 const m = Math.floor(diff.minutes);
                 const s = Math.floor(diff.seconds);
 
+                // Doklejamy minus tylko do kafelka z dniami, żeby pokazać czas ujemny
+                const displayD = isPast ? `-${d}` : d;
+
+                // --- WKLEJ TĘ LINIJKĘ: ---
+                const valueClass = isPast ? 'time-value past' : 'time-value';
+
                 timerContainer.innerHTML = `
                     <div class="time-box">
-                        <div class="time-value">${d}</div>
-                        <div class="time-label">Dni</div>
+                        <div class="${valueClass}">${displayD}</div>
+                        <div class="time-label">${dict.days}</div>
                     </div>
                     <div class="time-box">
-                        <div class="time-value">${h.toString().padStart(2, '0')}</div>
-                        <div class="time-label">Godz</div>
+                        <div class="${valueClass}">${h.toString().padStart(2, '0')}</div>
+                        <div class="time-label">${dict.hours}</div>
                     </div>
                     <div class="time-box">
-                        <div class="time-value">${m.toString().padStart(2, '0')}</div>
-                        <div class="time-label">Min</div>
+                        <div class="${valueClass}">${m.toString().padStart(2, '0')}</div>
+                        <div class="time-label">${dict.minutes}</div>
                     </div>
                     <div class="time-box">
-                        <div class="time-value">${s.toString().padStart(2, '0')}</div>
-                        <div class="time-label">Sek</div>
+                        <div class="${valueClass}">${s.toString().padStart(2, '0')}</div>
+                        <div class="time-label">${dict.seconds}</div>
                     </div>
                 `;
             });
         }
+        // ---------------------------------------
 
         document.getElementById('add-form').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -595,6 +833,7 @@
             const title = document.getElementById('title').value;
             const dateVal = document.getElementById('date').value;
             const zoneVal = document.getElementById('timezone').value;
+            const dict = translations[currentLang];
 
             let inputHour = parseInt(document.getElementById('form-hour').value);
             const inputMinute = parseInt(document.getElementById('form-minute').value);
@@ -602,15 +841,15 @@
             const ampm = document.getElementById('form-ampm').value;
 
             if (formFormat === '12' && (inputHour < 1 || inputHour > 12)) {
-                alert("Dla formatu 12h, godzina musi być w przedziale od 1 do 12!");
+                alert(dict.err12h);
                 return;
             }
             if (formFormat === '24' && (inputHour < 0 || inputHour > 23)) {
-                alert("Dla formatu 24h, godzina musi być w przedziale od 0 do 23!");
+                alert(dict.err24h);
                 return;
             }
             if (inputMinute < 0 || inputMinute > 59) {
-                alert("Minuty muszą być wartością od 0 do 59!");
+                alert(dict.errMin);
                 return;
             }
 
@@ -628,7 +867,7 @@
             const dtInZone = DateTime.fromISO(localIsoString, { zone: zoneVal });
 
             if (!dtInZone.isValid) {
-                alert("Wprowadzono niepoprawną datę/czas!");
+                alert(dict.errInvalid);
                 return;
             }
 
