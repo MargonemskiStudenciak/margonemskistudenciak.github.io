@@ -49,6 +49,9 @@
             box-sizing: border-box;
             text-transform: uppercase;
         }
+        input[type="number"] {
+            text-transform: none;
+        }
         button {
             width: 100%;
             padding: 12px;
@@ -81,11 +84,14 @@
 
 <div class="container">
     <h1>RustGrow Calculator</h1>
-    <p class="subtitle">Oblicz czas dla Konopi (Hemp) w 100% warunkach</p>
+    <p class="subtitle">Oblicz czas wzrostu na podstawie Genów i warunków (Overall)</p>
 
     <label for="genetics">Klon Genetyki (np. GGYYXW):</label>
     <input type="text" id="genetics" maxlength="6" placeholder="Wpisz 6 liter (G, Y, H, X, W)">
     <div id="error-msg" class="error">Genetyka musi składać się dokładnie z 6 liter (G, Y, H, X, W).</div>
+
+    <label for="overall">Stan Rośliny / Overall (%):</label>
+    <input type="number" id="overall" min="0" max="100" value="100" placeholder="np. 100">
 
     <label for="stage">Aktualny Stage:</label>
     <select id="stage">
@@ -112,7 +118,7 @@
 <script>
     // Orientacyjne czasy bazowe w minutach (przy 0 genów G i 100% warunków)
     const stages = [
-        { name: "Seed/Seedling", baseTime: 16 }, // Suma Seed + Seedling
+        { name: "Seed/Seedling", baseTime: 16 }, 
         { name: "Sapling", baseTime: 20 },
         { name: "Crossbreed", baseTime: 15 },
         { name: "Mature", baseTime: 30 },
@@ -121,12 +127,13 @@
 
     function calculateTime() {
         const geneticsInput = document.getElementById('genetics').value.toUpperCase();
+        const overall = parseFloat(document.getElementById('overall').value);
         const stageIndex = parseInt(document.getElementById('stage').value);
         const percent = parseFloat(document.getElementById('percent').value);
         const errorMsg = document.getElementById('error-msg');
         const resultBox = document.getElementById('result');
 
-        // Walidacja - czy wpisano dokładnie 6 znaków i czy to są odpowiednie litery
+        // Walidacja liter genetyki
         const validGenetics = /^[GYHXW]{6}$/;
         if (!validGenetics.test(geneticsInput)) {
             errorMsg.style.display = 'block';
@@ -135,33 +142,50 @@
         }
         errorMsg.style.display = 'none';
 
-        if (isNaN(percent) || percent < 0 || percent > 100) {
-            alert("Podaj poprawny procent od 0 do 100.");
+        // Walidacja liczb
+        if (isNaN(percent) || percent < 0 || percent > 100 || isNaN(overall) || overall < 0 || overall > 100) {
+            alert("Podaj poprawne wartości procentowe od 0 do 100.");
             return;
         }
 
-        // Zliczamy geny "G"
         let gCount = (geneticsInput.match(/G/g) || []).length;
         
-        // Obliczamy mnożnik (zakładamy, że każde G daje ok. 15% przyspieszenia)
-        let multiplier = 1 + (gCount * 0.15);
+        // Zabezpieczenie przed dzieleniem przez zero, gdy Overall wynosi 0%
+        if (overall === 0) {
+            document.getElementById('res-g').innerText = gCount;
+            document.getElementById('res-stage').innerText = "Zatrzymany (0% Overall)";
+            document.getElementById('res-total').innerText = "Zatrzymany / Brak wzrostu";
+            document.getElementById('res-total').style.color = "#ff5252";
+            resultBox.style.display = 'block';
+            return;
+        }
+
+        // Mnożnik za geny G (np. +15% za każdy)
+        let gMultiplier = 1 + (gCount * 0.15);
+        
+        // Mnożnik za Overall (100% to 1.0, 50% to 0.5)
+        let overallMultiplier = overall / 100;
+
+        // Łączna prędkość wzrostu
+        let totalSpeedMultiplier = gMultiplier * overallMultiplier;
 
         // Wyliczamy pozostały czas dla aktualnego stage'a
         let currentBaseTime = stages[stageIndex].baseTime;
-        let currentRealTime = currentBaseTime / multiplier;
+        let currentRealTime = currentBaseTime / totalSpeedMultiplier;
         let timeLeftCurrent = currentRealTime * ((100 - percent) / 100);
 
         // Wyliczamy czas dla wszystkich następnych stage'y
         let timeRemainingTotal = timeLeftCurrent;
         for (let i = stageIndex + 1; i < stages.length; i++) {
-            let nextRealTime = stages[i].baseTime / multiplier;
+            let nextRealTime = stages[i].baseTime / totalSpeedMultiplier;
             timeRemainingTotal += nextRealTime;
         }
 
-        // Wyświetlanie wyników na stronie
+        // Formatowanie i wyświetlanie wyników
         document.getElementById('res-g').innerText = gCount;
         document.getElementById('res-stage').innerText = Math.round(timeLeftCurrent) + " min";
         document.getElementById('res-total').innerText = Math.round(timeRemainingTotal) + " min";
+        document.getElementById('res-total').style.color = "#4CAF50"; // Przywracamy zielony kolor, jeśli wcześniej był czerwony
         
         resultBox.style.display = 'block';
     }
