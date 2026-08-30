@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RustGrow Calculator</title>
+    <title>RustGrow Calculator V5</title>
     <style>
         body {
             background-color: #1a1a1a;
@@ -21,7 +21,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
         }
         h1 {
             text-align: center;
@@ -36,12 +36,13 @@
         }
         label {
             display: block;
-            margin: 15px 0 5px;
+            margin: 10px 0 5px;
+            font-size: 14px;
             font-weight: bold;
         }
         input, select {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             border: 1px solid #444;
             border-radius: 5px;
             background-color: #1f1f1f;
@@ -62,7 +63,7 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 25px;
+            margin-top: 20px;
             transition: background 0.3s;
         }
         button:hover {
@@ -76,64 +77,106 @@
             border-radius: 4px;
             display: none;
         }
-        .result-box h3 { margin-top: 0; }
-        .error { color: #ff5252; font-size: 14px; margin-top: 10px; display: none;}
+        .result-box h3 { margin-top: 0; margin-bottom: 10px;}
+        .error { color: #ff5252; font-size: 13px; margin-top: 5px; display: none;}
+        .flex-row { display: flex; gap: 10px; }
+        .flex-col { flex: 1; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>RustGrow Calculator</h1>
-    <p class="subtitle">Oblicz czas wzrostu na podstawie Genów i warunków (Overall)</p>
+    <p class="subtitle">Wersja 5.0: Niezależna prędkość bazowa</p>
+
+    <div class="flex-row">
+        <div class="flex-col">
+            <label for="plant">Co sadzisz?</label>
+            <select id="plant">
+                <option value="hemp">Hemp (Konopie)</option>
+                <option value="berry">Berry (Jagody)</option>
+                <option value="food">Food (Ziemniaki itp.)</option>
+            </select>
+        </div>
+        <div class="flex-col">
+            <label for="overall">Overall (%):</label>
+            <input type="number" id="overall" min="0" max="100" value="100">
+        </div>
+    </div>
 
     <label for="genetics">Klon Genetyki (np. GGYYXW):</label>
     <input type="text" id="genetics" maxlength="6" placeholder="Wpisz 6 liter (G, Y, H, X, W)">
-    <div id="error-msg" class="error">Genetyka musi składać się dokładnie z 6 liter (G, Y, H, X, W).</div>
+    <div id="error-msg" class="error">Genetyka musi mieć 6 liter (G, Y, H, X, W).</div>
 
-    <label for="overall">Stan Rośliny / Overall (%):</label>
-    <input type="number" id="overall" min="0" max="100" value="100" placeholder="np. 100">
-
-    <label for="stage">Aktualny Stage:</label>
-    <select id="stage">
-        <option value="0">Seed / Seedling (Nasiono/Kiełek)</option>
-        <option value="1">Sapling (Sadzonka)</option>
-        <option value="2">Crossbreed (Krzyżowanie)</option>
-        <option value="3">Mature (Dojrzewanie)</option>
-        <option value="4">Fruiting (Owocowanie)</option>
-    </select>
-
-    <label for="percent">Progres Stage'a (%):</label>
-    <input type="number" id="percent" min="0" max="100" placeholder="np. 35">
+    <div class="flex-row">
+        <div class="flex-col" style="flex: 2;">
+            <label for="stage">Aktualny Stage:</label>
+            <select id="stage">
+                <option value="0">Seed (Nasiono)</option>
+                <option value="1">Seedling (Kiełek)</option>
+                <option value="2">Sapling (Sadzonka)</option>
+                <option value="3">Crossbreed (Krzyżowanie)</option>
+                <option value="4">Mature (Dojrzewanie)</option>
+                <option value="5">Fruiting (Owocowanie)</option>
+            </select>
+        </div>
+        <div class="flex-col" style="flex: 1;">
+            <label for="percent">Progres (%):</label>
+            <input type="number" id="percent" min="0" max="100" placeholder="np. 35">
+        </div>
+    </div>
 
     <button onclick="calculateTime()">Oblicz Czas</button>
 
     <div id="result" class="result-box">
         <h3>Wyniki:</h3>
         <p>Ilość genów 'G': <strong id="res-g">0</strong></p>
-        <p>Do końca tego etapu: <strong id="res-stage">0 min</strong></p>
-        <p>Czas do pełnych zbiorów: <strong style="color:#4CAF50;" id="res-total">0 min</strong></p>
+        <p>Do końca <b>obecnego etapu</b>: <strong id="res-stage">0 min</strong></p>
+        <p>Czas do <b>pełnych zbiorów (Ripe)</b>: <strong style="color:#4CAF50;" id="res-total">0 min</strong></p>
     </div>
 </div>
 
 <script>
-    // Orientacyjne czasy bazowe w minutach (przy 0 genów G i 100% warunków)
-    const stages = [
-        { name: "Seed/Seedling", baseTime: 16 }, 
-        { name: "Sapling", baseTime: 20 },
-        { name: "Crossbreed", baseTime: 15 },
-        { name: "Mature", baseTime: 30 },
-        { name: "Fruiting", baseTime: 20 }
-    ];
+    // Zoptymalizowane czasy bazowe w minutach
+    const plantData = {
+        hemp: [
+            { name: "Seed", baseTime: 2 },
+            { name: "Seedling", baseTime: 16 }, 
+            { name: "Sapling", baseTime: 14 },
+            { name: "Crossbreed", baseTime: 2 },
+            { name: "Mature", baseTime: 38 }, 
+            { name: "Fruiting", baseTime: 38 } 
+        ],
+        berry: [
+            { name: "Seed", baseTime: 2 },
+            { name: "Seedling", baseTime: 8 }, 
+            { name: "Sapling", baseTime: 10 },
+            { name: "Crossbreed", baseTime: 2 },
+            { name: "Mature", baseTime: 30 },
+            { name: "Fruiting", baseTime: 25 }
+        ],
+        food: [
+            { name: "Seed", baseTime: 2 },
+            { name: "Seedling", baseTime: 18 },
+            { name: "Sapling", baseTime: 18 },
+            { name: "Crossbreed", baseTime: 2 },
+            { name: "Mature", baseTime: 45 },
+            { name: "Fruiting", baseTime: 40 }
+        ]
+    };
 
     function calculateTime() {
+        const plantType = document.getElementById('plant').value;
         const geneticsInput = document.getElementById('genetics').value.toUpperCase();
         const overall = parseFloat(document.getElementById('overall').value);
         const stageIndex = parseInt(document.getElementById('stage').value);
         const percent = parseFloat(document.getElementById('percent').value);
+        
         const errorMsg = document.getElementById('error-msg');
         const resultBox = document.getElementById('result');
 
-        // Walidacja liter genetyki
+        const stages = plantData[plantType];
+
         const validGenetics = /^[GYHXW]{6}$/;
         if (!validGenetics.test(geneticsInput)) {
             errorMsg.style.display = 'block';
@@ -142,15 +185,14 @@
         }
         errorMsg.style.display = 'none';
 
-        // Walidacja liczb
         if (isNaN(percent) || percent < 0 || percent > 100 || isNaN(overall) || overall < 0 || overall > 100) {
-            alert("Podaj poprawne wartości procentowe od 0 do 100.");
+            alert("Podaj poprawne wartości procentowe (0-100).");
             return;
         }
 
         let gCount = (geneticsInput.match(/G/g) || []).length;
         
-        // Zabezpieczenie przed dzieleniem przez zero, gdy Overall wynosi 0%
+        // Jedyny wpływ Overall na czas to całkowite zatrzymanie przy 0%
         if (overall === 0) {
             document.getElementById('res-g').innerText = gCount;
             document.getElementById('res-stage').innerText = "Zatrzymany (0% Overall)";
@@ -160,32 +202,31 @@
             return;
         }
 
-        // Mnożnik za geny G (np. +15% za każdy)
-        let gMultiplier = 1 + (gCount * 0.15);
-        
-        // Mnożnik za Overall (100% to 1.0, 50% to 0.5)
-        let overallMultiplier = overall / 100;
+        // Usunięto overallMultiplier - prędkość dyktują wyłącznie geny G
+        let totalSpeedMultiplier = 1 + (gCount * 0.15);
 
-        // Łączna prędkość wzrostu
-        let totalSpeedMultiplier = gMultiplier * overallMultiplier;
-
-        // Wyliczamy pozostały czas dla aktualnego stage'a
         let currentBaseTime = stages[stageIndex].baseTime;
         let currentRealTime = currentBaseTime / totalSpeedMultiplier;
         let timeLeftCurrent = currentRealTime * ((100 - percent) / 100);
 
-        // Wyliczamy czas dla wszystkich następnych stage'y
         let timeRemainingTotal = timeLeftCurrent;
         for (let i = stageIndex + 1; i < stages.length; i++) {
             let nextRealTime = stages[i].baseTime / totalSpeedMultiplier;
             timeRemainingTotal += nextRealTime;
         }
 
-        // Formatowanie i wyświetlanie wyników
         document.getElementById('res-g').innerText = gCount;
-        document.getElementById('res-stage').innerText = Math.round(timeLeftCurrent) + " min";
-        document.getElementById('res-total').innerText = Math.round(timeRemainingTotal) + " min";
-        document.getElementById('res-total').style.color = "#4CAF50"; // Przywracamy zielony kolor, jeśli wcześniej był czerwony
+        
+        function formatTime(minutesDecimal) {
+            let mins = Math.floor(minutesDecimal);
+            let secs = Math.round((minutesDecimal - mins) * 60);
+            if (secs === 60) { mins++; secs = 0; }
+            return `${mins} min ${secs} sek`;
+        }
+
+        document.getElementById('res-stage').innerText = formatTime(timeLeftCurrent);
+        document.getElementById('res-total').innerText = formatTime(timeRemainingTotal);
+        document.getElementById('res-total').style.color = "#4CAF50";
         
         resultBox.style.display = 'block';
     }
