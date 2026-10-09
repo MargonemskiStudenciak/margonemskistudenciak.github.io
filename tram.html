@@ -44,8 +44,8 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
                 </div>
-                <h2 class="text-2xl font-bold text-gray-800">Brak danych</h2>
-                <p class="text-gray-500 mt-2 text-sm">Wgraj plik JSON z rozkładem jazdy, aby rozpocząć.</p>
+                <h2 class="text-2xl font-bold text-gray-800">Wybierz rozkład</h2>
+                <p class="text-gray-500 mt-2 text-sm">Wgraj nowe pliki JSON lub wybierz z zapisanych.</p>
             </div>
 
             <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6 flex-grow">
@@ -54,18 +54,16 @@
 {
   "stops": [
     {"name": "Przystanek A", "offset": 0},
-    {"name": "Przystanek B", "offset": 2},
-    {"name": "Przystanek C", "offset": 5}
+    {"name": "Przystanek B", "offset": 2}
   ],
   "schedule": {
     "07": [7, 27, 47],
-    "08": [10, 30, 50],
-    "09": [5, 25, 45]
+    "08": [10, 30, 50]
   }
 }</pre>
             </div>
 
-            <div class="mt-auto">
+            <div class="mt-auto w-full">
                 <div id="errorMessage" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl text-center font-medium">
                     Błąd: Nieprawidłowy plik JSON.
                 </div>
@@ -74,9 +72,17 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                     </svg>
-                    Wybierz plik .json
-                    <input type="file" id="jsonFileInput" accept=".json" class="hidden">
+                    Wgraj plik(i) .json
+                    <input type="file" id="jsonFileInput" accept=".json" class="hidden" multiple>
                 </label>
+
+                <!-- Sekcja zapisanych rozkładów -->
+                <div id="savedSchedulesContainer" class="mt-6 hidden w-full">
+                    <h3 class="text-xs font-semibold uppercase text-gray-500 mb-3 text-center border-b border-gray-100 pb-2">Zapisane rozkłady</h3>
+                    <div id="savedSchedulesList" class="space-y-2 max-h-40 overflow-y-auto no-scrollbar pr-1">
+                        <!-- Lista renderowana z JS -->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -87,7 +93,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
-                        LiveTram
+                        <span id="currentScheduleName">LiveTram</span>
                     </h1>
                     <div id="currentTimeDisplay" class="text-xl font-medium bg-blue-700/50 px-3 py-1 rounded-lg shadow-inner">
                         --:--
@@ -135,12 +141,14 @@
             </div>
             
             <div class="text-center pb-4 text-xs text-gray-400">
-                <button id="resetDataBtn" class="hover:text-gray-600 underline decoration-gray-300 transition-colors">Wgraj inny plik</button>
+                <button id="resetDataBtn" class="hover:text-gray-600 underline decoration-gray-300 transition-colors">Wróć do listy rozkładów</button>
             </div>
         </div>
     </div>
 
     <script>
+        let savedSchedules = [];
+        let activeScheduleId = null;
         let scheduleData = null;
         let selectedStopIndex = 0;
         let calculatedDepartures = []; 
@@ -161,57 +169,141 @@
         const currentTimeDisplay = document.getElementById('currentTimeDisplay');
         const noDeparturesMessage = document.getElementById('noDeparturesMessage');
         const resetDataBtn = document.getElementById('resetDataBtn');
+        const currentScheduleName = document.getElementById('currentScheduleName');
+        const savedSchedulesContainer = document.getElementById('savedSchedulesContainer');
+        const savedSchedulesList = document.getElementById('savedSchedulesList');
 
         const padZero = (num) => num.toString().padStart(2, '0');
 
         // Wczytanie zapisanych danych przy starcie
         document.addEventListener('DOMContentLoaded', () => {
-            const savedData = localStorage.getItem('tramScheduleData');
+            const savedData = localStorage.getItem('tramSavedSchedules');
             if (savedData) {
                 try {
-                    scheduleData = JSON.parse(savedData);
-                    initApp();
+                    savedSchedules = JSON.parse(savedData);
                 } catch (error) {
                     console.error('Błąd wczytywania danych z localStorage:', error);
-                    localStorage.removeItem('tramScheduleData');
+                    savedSchedules = [];
                 }
+            }
+
+            const activeId = localStorage.getItem('tramActiveScheduleId');
+            if (activeId && savedSchedules.find(s => s.id === activeId)) {
+                loadSchedule(activeId);
+            } else {
+                renderSavedSchedules();
             }
         });
 
         jsonFileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const parsedData = JSON.parse(event.target.result);
-                    
-                    if (!parsedData.stops || !Array.isArray(parsedData.stops) || !parsedData.schedule) {
-                        throw new Error("Brak wymaganych kluczy 'stops' lub 'schedule'.");
-                    }
-                    if (parsedData.stops.length === 0 || typeof parsedData.stops[0].offset === 'undefined') {
-                        throw new Error("Nieprawidłowy format tablicy 'stops'.");
-                    }
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const parsedData = JSON.parse(event.target.result);
+                        
+                        if (!parsedData.stops || !Array.isArray(parsedData.stops) || !parsedData.schedule) {
+                            throw new Error(`Brak wymaganych kluczy w pliku ${file.name}.`);
+                        }
+                        if (parsedData.stops.length === 0 || typeof parsedData.stops[0].offset === 'undefined') {
+                            throw new Error(`Nieprawidłowy format tablicy 'stops' w pliku ${file.name}.`);
+                        }
 
-                    scheduleData = parsedData;
-                    
-                    // Zapis do localStorage
-                    localStorage.setItem('tramScheduleData', JSON.stringify(scheduleData));
-                    localStorage.removeItem('tramSelectedStop');
-                    
-                    errorMessage.classList.add('hidden');
-                    initApp();
-                    
-                } catch (error) {
-                    console.error("Błąd parsowania:", error);
-                    errorMessage.textContent = "Błąd: " + (error.message || "Nieprawidłowy format pliku JSON.");
-                    errorMessage.classList.remove('hidden');
-                }
-            };
-            reader.readAsText(file);
+                        // Sprawdź czy plik o tej nazwie już istnieje by uniknąć duplikatów o tej samej nazwie
+                        const existingIndex = savedSchedules.findIndex(s => s.name === file.name);
+                        
+                        const newSchedule = {
+                            id: existingIndex !== -1 ? savedSchedules[existingIndex].id : Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                            name: file.name.replace('.json', ''),
+                            data: parsedData,
+                            lastStopIndex: 0
+                        };
+
+                        if (existingIndex !== -1) {
+                            savedSchedules[existingIndex] = newSchedule;
+                        } else {
+                            savedSchedules.push(newSchedule);
+                        }
+                        
+                        saveToLocalStorage();
+                        loadSchedule(newSchedule.id);
+                        
+                    } catch (error) {
+                        console.error("Błąd parsowania:", error);
+                        errorMessage.textContent = "Błąd: " + (error.message || "Nieprawidłowy format pliku JSON.");
+                        errorMessage.classList.remove('hidden');
+                    }
+                };
+                reader.readAsText(file);
+            });
             e.target.value = ''; 
         });
+
+        function saveToLocalStorage() {
+            localStorage.setItem('tramSavedSchedules', JSON.stringify(savedSchedules));
+            if (activeScheduleId) {
+                localStorage.setItem('tramActiveScheduleId', activeScheduleId);
+            } else {
+                localStorage.removeItem('tramActiveScheduleId');
+            }
+        }
+
+        function renderSavedSchedules() {
+            if (savedSchedules.length === 0) {
+                savedSchedulesContainer.classList.add('hidden');
+                return;
+            }
+            
+            savedSchedulesContainer.classList.remove('hidden');
+            savedSchedulesList.innerHTML = '';
+
+            savedSchedules.forEach(schedule => {
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between bg-white border border-gray-200 p-3 rounded-xl shadow-sm hover:border-blue-300 transition-colors";
+                item.innerHTML = `
+                    <div class="truncate pr-2 font-medium text-gray-700 text-sm flex-grow" title="${schedule.name}">${schedule.name}</div>
+                    <div class="flex gap-2 flex-shrink-0">
+                        <button class="select-btn px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 transition" data-id="${schedule.id}">Wybierz</button>
+                        <button class="delete-btn px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition" data-id="${schedule.id}">Usuń</button>
+                    </div>
+                `;
+                savedSchedulesList.appendChild(item);
+            });
+
+            document.querySelectorAll('.select-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => loadSchedule(e.target.dataset.id));
+            });
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => deleteSchedule(e.target.dataset.id));
+            });
+        }
+
+        function loadSchedule(id) {
+            const schedule = savedSchedules.find(s => s.id === id);
+            if (!schedule) return;
+
+            activeScheduleId = id;
+            scheduleData = schedule.data;
+            selectedStopIndex = schedule.lastStopIndex || 0;
+            currentScheduleName.textContent = schedule.name;
+            
+            saveToLocalStorage();
+            errorMessage.classList.add('hidden');
+            initApp();
+        }
+
+        function deleteSchedule(id) {
+            savedSchedules = savedSchedules.filter(s => s.id !== id);
+            if (activeScheduleId === id) {
+                activeScheduleId = null;
+                scheduleData = null;
+            }
+            saveToLocalStorage();
+            renderSavedSchedules();
+        }
 
         function initApp() {
             uploadView.classList.add('hidden');
@@ -219,11 +311,6 @@
             appView.classList.remove('hidden');
             appView.classList.add('flex');
             
-            // Pobieranie zapisanego przystanku lub ustawienie domyślnego
-            const savedStop = localStorage.getItem('tramSelectedStop');
-            selectedStopIndex = savedStop !== null ? parseInt(savedStop) : 0;
-            
-            // Najpierw musimy wygenerować listę, aby móc przypisać jej wartość
             populateStopsDropdown();
             stopSelect.value = selectedStopIndex;
 
@@ -381,8 +468,12 @@
 
         stopSelect.addEventListener('change', (e) => {
             selectedStopIndex = parseInt(e.target.value);
-            // Zapis do localStorage
-            localStorage.setItem('tramSelectedStop', selectedStopIndex);
+            
+            const schedule = savedSchedules.find(s => s.id === activeScheduleId);
+            if (schedule) {
+                schedule.lastStopIndex = selectedStopIndex;
+                saveToLocalStorage();
+            }
             
             calculateTimesForStop();
             updateUI();
@@ -403,11 +494,11 @@
 
         resetDataBtn.addEventListener('click', () => {
             if (updateInterval) clearInterval(updateInterval);
-            scheduleData = null;
             
-            // Usunięcie danych z pamięci
-            localStorage.removeItem('tramScheduleData');
-            localStorage.removeItem('tramSelectedStop');
+            // Odznaczamy aktywny rozkład, ale nie kasujemy danych
+            activeScheduleId = null;
+            scheduleData = null;
+            localStorage.removeItem('tramActiveScheduleId');
             
             appView.classList.add('hidden');
             appView.classList.remove('flex');
@@ -418,6 +509,8 @@
             toggleIcon.classList.remove('rotate-180');
             toggleAllBtn.querySelector('span').textContent = 'Pokaż pełny rozkład na dziś';
             errorMessage.classList.add('hidden');
+            
+            renderSavedSchedules();
         });
 
     </script>
