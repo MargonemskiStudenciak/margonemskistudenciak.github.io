@@ -52,6 +52,7 @@
                 <h3 class="text-xs font-semibold uppercase text-gray-500 mb-2">Wymagany format JSON:</h3>
                 <pre class="text-[11px] sm:text-xs text-gray-600 overflow-x-auto bg-white p-3 rounded-lg border border-gray-100 shadow-inner">
 {
+  "description": "Opcjonalny opis, np. Linia 15",
   "stops": [
     {"name": "Przystanek A", "offset": 0},
     {"name": "Przystanek B", "offset": 2}
@@ -88,13 +89,16 @@
 
         <div id="appView" class="hidden flex-col h-full z-10">
             <div class="bg-blue-600 text-white p-6 rounded-b-2xl shadow-md z-10 relative flex-shrink-0">
-                <div class="flex items-center justify-between mb-4">
-                    <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                        </svg>
-                        <span id="currentScheduleName">LiveTram</span>
-                    </h1>
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                            <span id="currentScheduleName">LiveTram</span>
+                        </h1>
+                        <p id="scheduleDescription" class="text-blue-200 text-sm mt-1 hidden"></p>
+                    </div>
                     <div id="currentTimeDisplay" class="text-xl font-medium bg-blue-700/50 px-3 py-1 rounded-lg shadow-inner">
                         --:--
                     </div>
@@ -170,6 +174,7 @@
         const noDeparturesMessage = document.getElementById('noDeparturesMessage');
         const resetDataBtn = document.getElementById('resetDataBtn');
         const currentScheduleName = document.getElementById('currentScheduleName');
+        const scheduleDescription = document.getElementById('scheduleDescription');
         const savedSchedulesContainer = document.getElementById('savedSchedulesContainer');
         const savedSchedulesList = document.getElementById('savedSchedulesList');
 
@@ -212,7 +217,7 @@
                             throw new Error(`Nieprawidłowy format tablicy 'stops' w pliku ${file.name}.`);
                         }
 
-                        // Sprawdź czy plik o tej nazwie już istnieje by uniknąć duplikatów o tej samej nazwie
+                        // Sprawdź czy plik o tej nazwie już istnieje by uniknąć duplikatów
                         const existingIndex = savedSchedules.findIndex(s => s.name === file.name);
                         
                         const newSchedule = {
@@ -263,8 +268,17 @@
             savedSchedules.forEach(schedule => {
                 const item = document.createElement('div');
                 item.className = "flex items-center justify-between bg-white border border-gray-200 p-3 rounded-xl shadow-sm hover:border-blue-300 transition-colors";
+                
+                // Generowanie opisu jeśli istnieje
+                const descHtml = schedule.data.description 
+                    ? `<div class="text-[11px] text-gray-400 truncate mt-0.5">${schedule.data.description}</div>` 
+                    : '';
+
                 item.innerHTML = `
-                    <div class="truncate pr-2 font-medium text-gray-700 text-sm flex-grow" title="${schedule.name}">${schedule.name}</div>
+                    <div class="truncate pr-2 flex-grow" title="${schedule.name}">
+                        <div class="font-medium text-gray-700 text-sm">${schedule.name}</div>
+                        ${descHtml}
+                    </div>
                     <div class="flex gap-2 flex-shrink-0">
                         <button class="select-btn px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 transition" data-id="${schedule.id}">Wybierz</button>
                         <button class="delete-btn px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition" data-id="${schedule.id}">Usuń</button>
@@ -289,6 +303,15 @@
             scheduleData = schedule.data;
             selectedStopIndex = schedule.lastStopIndex || 0;
             currentScheduleName.textContent = schedule.name;
+            
+            // Obsługa opisu
+            if (scheduleData.description) {
+                scheduleDescription.textContent = scheduleData.description;
+                scheduleDescription.classList.remove('hidden');
+            } else {
+                scheduleDescription.textContent = '';
+                scheduleDescription.classList.add('hidden');
+            }
             
             saveToLocalStorage();
             errorMessage.classList.add('hidden');
@@ -495,7 +518,6 @@
         resetDataBtn.addEventListener('click', () => {
             if (updateInterval) clearInterval(updateInterval);
             
-            // Odznaczamy aktywny rozkład, ale nie kasujemy danych
             activeScheduleId = null;
             scheduleData = null;
             localStorage.removeItem('tramActiveScheduleId');
