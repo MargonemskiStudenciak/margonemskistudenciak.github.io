@@ -33,11 +33,14 @@
         }
     </style>
 </head>
-<body class="min-h-screen text-gray-800 flex items-center justify-center p-4">
+<!-- Zmodyfikowano body, aby bezpiecznie przewijało się całe okno gdy lista jest długa -->
+<body class="min-h-screen text-gray-800 flex flex-col p-4 sm:p-8">
 
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col relative min-h-[500px]">
+    <!-- Dodano m-auto dla bezpiecznego pionowego centrowania i swobodnego rozrostu -->
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md m-auto overflow-hidden flex flex-col relative min-h-[500px]">
         
-        <div id="uploadView" class="z-20 bg-white flex flex-col h-full flex-grow p-6">
+        <!-- Usunięto h-full, by sekcja dopasowywała się do zawartości -->
+        <div id="uploadView" class="z-20 bg-white flex flex-col flex-grow p-6">
             <div class="text-center mb-6 mt-4">
                 <div class="bg-blue-100 text-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -80,14 +83,16 @@
                 <!-- Sekcja zapisanych rozkładów -->
                 <div id="savedSchedulesContainer" class="mt-6 hidden w-full">
                     <h3 class="text-xs font-semibold uppercase text-gray-500 mb-3 text-center border-b border-gray-100 pb-2">Zapisane rozkłady</h3>
-                    <div id="savedSchedulesList" class="space-y-2 max-h-40 overflow-y-auto no-scrollbar pr-1">
+                    
+                    <!-- Usunięto ograniczenie max-h-40 i scrollowanie wewnątrz diva -->
+                    <div id="savedSchedulesList" class="space-y-2 pb-2">
                         <!-- Lista renderowana z JS -->
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="appView" class="hidden flex-col h-full z-10">
+        <div id="appView" class="hidden flex-col flex-grow z-10">
             <div class="bg-blue-600 text-white p-6 rounded-b-2xl shadow-md z-10 relative flex-shrink-0">
                 <div class="flex items-start justify-between mb-4">
                     <div>
