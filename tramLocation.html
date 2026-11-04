@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rozkład Jazdy Tramwajów</title>
+    <title>Rozkład Jazdy Tramwajów - Częstochowa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -11,7 +11,6 @@
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
-        
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -19,14 +18,12 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-
         .expand-transition {
             transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
             max-height: 0;
             opacity: 0;
             overflow: hidden;
         }
-        
         .expand-transition.expanded {
             max-height: 2000px;
             opacity: 1;
@@ -37,6 +34,7 @@
 
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md m-auto overflow-hidden flex flex-col relative min-h-[500px]">
         
+        <!-- Widok ładowania / wyboru rozkładu -->
         <div id="uploadView" class="z-20 bg-white flex flex-col flex-grow p-6">
             <div class="text-center mb-6 mt-4">
                 <div class="bg-blue-100 text-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -45,23 +43,7 @@
                     </svg>
                 </div>
                 <h2 class="text-2xl font-bold text-gray-800">Wybierz rozkład</h2>
-                <p class="text-gray-500 mt-2 text-sm">Wgraj nowe pliki JSON lub wybierz z zapisanych.</p>
-            </div>
-
-            <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6 flex-grow">
-                <h3 class="text-xs font-semibold uppercase text-gray-500 mb-2">Wymagany format JSON:</h3>
-                <pre class="text-[11px] sm:text-xs text-gray-600 overflow-x-auto bg-white p-3 rounded-lg border border-gray-100 shadow-inner">
-{
-  "description": "Opcjonalny opis",
-  "stops": [
-    {"name": "Przystanek A", "offset": 0, "lat": 50.2649, "lon": 19.0238},
-    {"name": "Przystanek B", "offset": 2, "lat": 50.2671, "lon": 19.0195}
-  ],
-  "schedule": {
-    "07": [7, 27, 47],
-    "08": [10, 30, 50]
-  }
-}</pre>
+                <p class="text-gray-500 mt-2 text-sm">Wgraj plik JSON lub skorzystaj z zapisanych.</p>
             </div>
 
             <div class="mt-auto w-full">
@@ -79,13 +61,12 @@
 
                 <div id="savedSchedulesContainer" class="mt-6 hidden w-full">
                     <h3 class="text-xs font-semibold uppercase text-gray-500 mb-3 text-center border-b border-gray-100 pb-2">Zapisane rozkłady</h3>
-                    <div id="savedSchedulesList" class="space-y-2 pb-2">
-                        <!-- Lista renderowana z JS -->
-                    </div>
+                    <div id="savedSchedulesList" class="space-y-2 pb-2"></div>
                 </div>
             </div>
         </div>
 
+        <!-- Główny widok rozkładu -->
         <div id="appView" class="hidden flex-col flex-grow z-10">
             <div class="bg-blue-600 text-white p-6 rounded-b-2xl shadow-md z-10 relative flex-shrink-0">
                 <div class="flex items-start justify-between mb-4">
@@ -103,18 +84,24 @@
                     </div>
                 </div>
                 
-                <div class="relative mt-4">
+                <!-- Wybór kierunku (Północ / Południe) -->
+                <div id="directionWrapper" class="mb-3 hidden">
+                    <label for="directionSelect" class="block text-xs uppercase font-semibold text-blue-200 mb-1">Kierunek jazdy</label>
+                    <select id="directionSelect" class="w-full bg-white text-gray-800 border-none rounded-xl py-2.5 px-4 appearance-none font-medium focus:ring-2 focus:ring-blue-300 shadow-sm cursor-pointer transition">
+                    </select>
+                </div>
+
+                <div class="relative">
                     <label for="stopSelect" class="block text-xs uppercase font-semibold text-blue-200 mb-1">Wybrany przystanek</label>
                     <select id="stopSelect" class="w-full bg-white text-gray-800 border-none rounded-xl py-3 px-4 appearance-none font-medium focus:ring-2 focus:ring-blue-300 shadow-sm cursor-pointer transition">
-                        <!-- Opcje wygenerowane przez JS -->
                     </select>
                     <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 pt-5 text-gray-500">
                         <svg class="fill-current h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                     </div>
                 </div>
 
-                <!-- NOWE WIDŻET: Wyświetlanie odległości -->
-                <div id="distanceContainer" class="hidden mt-3 flex items-center justify-between text-sm bg-blue-700/30 px-3 py-2 rounded-lg text-blue-100 border border-blue-500/50">
+                <!-- Widget dystansu -->
+                <div id="distanceContainer" class="mt-3 flex items-center justify-between text-sm bg-blue-700/30 px-3 py-2 rounded-lg text-blue-100 border border-blue-500/50">
                     <div class="flex items-center gap-1.5">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -131,9 +118,7 @@
                     <h2 class="text-lg font-semibold text-gray-700">Najbliższe odjazdy</h2>
                 </div>
                 
-                <div id="nextDeparturesContainer" class="space-y-3 mt-4">
-                    <!-- Karty najbliższych odjazdów -->
-                </div>
+                <div id="nextDeparturesContainer" class="space-y-3 mt-4"></div>
 
                 <div id="noDeparturesMessage" class="hidden mt-4 text-center p-4 bg-orange-50 rounded-xl border border-orange-100 text-orange-600">
                     <p class="font-medium text-sm">Brak kolejnych odjazdów w dniu dzisiejszym.</p>
@@ -149,9 +134,7 @@
                 </button>
                 
                 <div id="allDeparturesContainer" class="expand-transition mt-4">
-                    <div id="allDeparturesList" class="space-y-4 max-h-[40vh] overflow-y-auto no-scrollbar pb-4">
-                        <!-- Pełna lista -->
-                    </div>
+                    <div id="allDeparturesList" class="space-y-4 max-h-[40vh] overflow-y-auto no-scrollbar pb-4"></div>
                 </div>
             </div>
             
@@ -164,21 +147,23 @@
     <script>
         let savedSchedules = [];
         let activeScheduleId = null;
-        let scheduleData = null;
+        let rawScheduleData = null; // Pełne dane z JSON
+        let scheduleData = null;   // Aktywny kierunek
+        let currentDirectionIndex = 0;
         let selectedStopIndex = 0;
         let calculatedDepartures = []; 
         let isListExpanded = false;
         let updateInterval = null;
         
-        // Zmienne geolokalizacji
         let userCoords = null;
         let geoWatchId = null;
 
-        // DOM Elements
         const uploadView = document.getElementById('uploadView');
         const appView = document.getElementById('appView');
         const jsonFileInput = document.getElementById('jsonFileInput');
         const errorMessage = document.getElementById('errorMessage');
+        const directionWrapper = document.getElementById('directionWrapper');
+        const directionSelect = document.getElementById('directionSelect');
         const stopSelect = document.getElementById('stopSelect');
         const nextDeparturesContainer = document.getElementById('nextDeparturesContainer');
         const allDeparturesList = document.getElementById('allDeparturesList');
@@ -193,7 +178,6 @@
         const savedSchedulesContainer = document.getElementById('savedSchedulesContainer');
         const savedSchedulesList = document.getElementById('savedSchedulesList');
         
-        // DOM Elements Geolokalizacji
         const distanceContainer = document.getElementById('distanceContainer');
         const distanceDisplay = document.getElementById('distanceDisplay');
 
@@ -202,14 +186,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             const savedData = localStorage.getItem('tramSavedSchedules');
             if (savedData) {
-                try {
-                    savedSchedules = JSON.parse(savedData);
-                } catch (error) {
-                    console.error('Błąd wczytywania danych z localStorage:', error);
-                    savedSchedules = [];
-                }
+                try { savedSchedules = JSON.parse(savedData); } catch (e) { savedSchedules = []; }
             }
-
             const activeId = localStorage.getItem('tramActiveScheduleId');
             if (activeId && savedSchedules.find(s => s.id === activeId)) {
                 loadSchedule(activeId);
@@ -218,7 +196,6 @@
             }
         });
 
-        // Obsługa wgrywania nowego pliku JSON
         jsonFileInput.addEventListener('change', (e) => {
             const files = e.target.files;
             if (!files || files.length === 0) return;
@@ -228,34 +205,26 @@
                 reader.onload = (event) => {
                     try {
                         const parsedData = JSON.parse(event.target.result);
-                        
-                        if (!parsedData.stops || !Array.isArray(parsedData.stops) || !parsedData.schedule) {
-                            throw new Error(`Brak wymaganych kluczy w pliku ${file.name}.`);
-                        }
-                        if (parsedData.stops.length === 0 || typeof parsedData.stops[0].offset === 'undefined') {
-                            throw new Error(`Nieprawidłowy format tablicy 'stops' w pliku ${file.name}.`);
+                        // Walidacja: plik musi mieć albo 'directions', albo tradycyjne 'stops' i 'schedule'
+                        if (!parsedData.directions && (!parsedData.stops || !parsedData.schedule)) {
+                            throw new Error(`Nieprawidłowa struktura pliku ${file.name}.`);
                         }
 
                         const existingIndex = savedSchedules.findIndex(s => s.name === file.name);
-                        
                         const newSchedule = {
                             id: existingIndex !== -1 ? savedSchedules[existingIndex].id : Date.now().toString() + Math.random().toString(36).substr(2, 5),
                             name: file.name.replace('.json', ''),
                             data: parsedData,
+                            lastDirectionIndex: 0,
                             lastStopIndex: 0
                         };
 
-                        if (existingIndex !== -1) {
-                            savedSchedules[existingIndex] = newSchedule;
-                        } else {
-                            savedSchedules.push(newSchedule);
-                        }
+                        if (existingIndex !== -1) savedSchedules[existingIndex] = newSchedule;
+                        else savedSchedules.push(newSchedule);
                         
                         saveToLocalStorage();
                         loadSchedule(newSchedule.id);
-                        
                     } catch (error) {
-                        console.error("Błąd parsowania:", error);
                         errorMessage.textContent = "Błąd: " + (error.message || "Nieprawidłowy format pliku JSON.");
                         errorMessage.classList.remove('hidden');
                     }
@@ -265,25 +234,18 @@
             e.target.value = ''; 
         });
 
-        // Wzór Haversine do obliczania odległości
         function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Promień Ziemi w km
+            const R = 6371;
             const dLat = deg2rad(lat2 - lat1);
             const dLon = deg2rad(lon2 - lon1);
-            const a = 
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-                Math.sin(dLon / 2) * Math.sin(dLon / 2); 
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
-            const d = R * c; 
-            return d;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2); 
+            return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         }
 
-        function deg2rad(deg) {
-            return deg * (Math.PI / 180);
-        }
+        function deg2rad(deg) { return deg * (Math.PI / 180); }
 
-        // Obsługa lokalizacji i aktualizacja UI
         function startGeolocation() {
             if ("geolocation" in navigator) {
                 distanceContainer.classList.remove('hidden');
@@ -293,16 +255,13 @@
                 
                 geoWatchId = navigator.geolocation.watchPosition(
                     (position) => {
-                        userCoords = {
-                            lat: position.coords.latitude,
-                            lon: position.coords.longitude
-                        };
+                        userCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
                         updateDistanceUI();
+                        autoSelectNearestStop();
                     },
                     (error) => {
-                        console.warn("Błąd geolokalizacji:", error);
                         distanceDisplay.textContent = "Brak dostępu";
-                        distanceDisplay.classList.add("text-orange-200");
+                        distanceDisplay.className = "font-bold text-orange-200 text-xs";
                     },
                     { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
                 );
@@ -320,49 +279,62 @@
         }
 
         function updateDistanceUI() {
-    if (!scheduleData || !scheduleData.stops[selectedStopIndex]) return;
-    
-    const stop = scheduleData.stops[selectedStopIndex];
-    let targetLat = stop.lat;
-    let targetLon = stop.lon;
+            if (!scheduleData || !scheduleData.stops[selectedStopIndex]) return;
+            const stop = scheduleData.stops[selectedStopIndex];
+            
+            if (!stop.lat || !stop.lon) {
+                distanceDisplay.textContent = "Brak koordynatów";
+                distanceDisplay.className = "font-bold text-blue-200 text-xs";
+                return;
+            }
 
-    // Próba odkodowania tekstowych koordynatów jeśli istnieją
-    if (stop.coords) {
-        const parsed = parseCoords(stop.coords);
-        if (parsed) {
-            targetLat = parsed.lat;
-            targetLon = parsed.lon;
+            if (!userCoords) {
+                distanceDisplay.textContent = "Szukam...";
+                return;
+            }
+
+            const distKm = getDistance(userCoords.lat, userCoords.lon, stop.lat, stop.lon);
+            distanceDisplay.className = "font-bold text-white tracking-wide";
+            if (distKm < 1) {
+                distanceDisplay.textContent = Math.round(distKm * 1000) + " m";
+            } else {
+                distanceDisplay.textContent = distKm.toFixed(2) + " km";
+            }
         }
-    }
-    
-    if (!targetLat || !targetLon) {
-        distanceDisplay.textContent = "Brak danych w JSON";
-        distanceDisplay.className = "font-bold text-blue-200 text-xs";
-        return;
-    }
 
-    if (!userCoords) {
-        distanceDisplay.textContent = "Szukam...";
-        return;
-    }
+        function autoSelectNearestStop() {
+            if (!userCoords || !scheduleData || !scheduleData.stops) return;
+            let minIndex = 0;
+            let minDistance = Infinity;
 
-    const distKm = getDistance(userCoords.lat, userCoords.lon, targetLat, targetLon);
-    distanceDisplay.className = "font-bold text-white tracking-wide";
-    
-    if (distKm < 1) {
-        distanceDisplay.textContent = Math.round(distKm * 1000) + " m";
-    } else {
-        distanceDisplay.textContent = distKm.toFixed(2) + " km";
-    }
-}
+            scheduleData.stops.forEach((stop, index) => {
+                if (stop.lat && stop.lon) {
+                    const dist = getDistance(userCoords.lat, userCoords.lon, stop.lat, stop.lon);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        minIndex = index;
+                    }
+                }
+            });
+
+            if (selectedStopIndex !== minIndex) {
+                selectedStopIndex = minIndex;
+                stopSelect.value = selectedStopIndex;
+                const schedule = savedSchedules.find(s => s.id === activeScheduleId);
+                if (schedule) {
+                    schedule.lastStopIndex = selectedStopIndex;
+                    saveToLocalStorage();
+                }
+                calculateTimesForStop();
+                updateUI();
+                updateDistanceUI();
+            }
+        }
 
         function saveToLocalStorage() {
             localStorage.setItem('tramSavedSchedules', JSON.stringify(savedSchedules));
-            if (activeScheduleId) {
-                localStorage.setItem('tramActiveScheduleId', activeScheduleId);
-            } else {
-                localStorage.removeItem('tramActiveScheduleId');
-            }
+            if (activeScheduleId) localStorage.setItem('tramActiveScheduleId', activeScheduleId);
+            else localStorage.removeItem('tramActiveScheduleId');
         }
 
         function renderSavedSchedules() {
@@ -370,17 +342,13 @@
                 savedSchedulesContainer.classList.add('hidden');
                 return;
             }
-            
             savedSchedulesContainer.classList.remove('hidden');
             savedSchedulesList.innerHTML = '';
 
             savedSchedules.forEach(schedule => {
                 const item = document.createElement('div');
                 item.className = "flex items-center justify-between bg-white border border-gray-200 p-3 rounded-xl shadow-sm hover:border-blue-300 transition-colors";
-                
-                const descHtml = schedule.data.description 
-                    ? `<div class="text-[11px] text-gray-400 truncate mt-0.5">${schedule.data.description}</div>` 
-                    : '';
+                const descHtml = schedule.data.description ? `<div class="text-[11px] text-gray-400 truncate mt-0.5">${schedule.data.description}</div>` : '';
 
                 item.innerHTML = `
                     <div class="truncate pr-2 flex-grow" title="${schedule.name}">
@@ -395,46 +363,35 @@
                 savedSchedulesList.appendChild(item);
             });
 
-            document.querySelectorAll('.select-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => loadSchedule(e.target.dataset.id));
-            });
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => deleteSchedule(e.target.dataset.id));
-            });
+            document.querySelectorAll('.select-btn').forEach(btn => btn.addEventListener('click', (e) => loadSchedule(e.target.dataset.id)));
+            document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => deleteSchedule(e.target.dataset.id)));
         }
-
-        // Konwerter współrzędnych tekstowych na format dziesiętny
-function parseCoords(coordsStr) {
-    if (!coordsStr) return null;
-    // Wyrażenie regularne wyciągające liczby i kierunki niezależnie od znaków specjalnych
-    const regex = /(\d+)[^\d]+(\d+)[^\d]+([\d.]+)[^\dNS]+([NS])[^\d]+(\d+)[^\d]+(\d+)[^\d]+([\d.]+)[^\dEW]+([EW])/i;
-    const match = coordsStr.match(regex);
-    
-    if (!match) return null;
-
-    let lat = parseFloat(match[1]) + parseFloat(match[2])/60 + parseFloat(match[3])/3600;
-    if (match[4].toUpperCase() === 'S') lat *= -1;
-
-    let lon = parseFloat(match[5]) + parseFloat(match[6])/60 + parseFloat(match[7])/3600;
-    if (match[8].toUpperCase() === 'W') lon *= -1;
-
-    return { lat, lon };
-}
 
         function loadSchedule(id) {
             const schedule = savedSchedules.find(s => s.id === id);
             if (!schedule) return;
 
             activeScheduleId = id;
-            scheduleData = schedule.data;
-            selectedStopIndex = schedule.lastStopIndex || 0;
+            rawScheduleData = schedule.data;
             currentScheduleName.textContent = schedule.name;
             
-            if (scheduleData.description) {
-                scheduleDescription.textContent = scheduleData.description;
+            // Obsługa formatu z kierunkami lub starego formatu płaskiego
+            if (rawScheduleData.directions) {
+                directionWrapper.classList.remove('hidden');
+                populateDirectionsDropdown();
+                currentDirectionIndex = schedule.lastDirectionIndex || 0;
+                directionSelect.value = currentDirectionIndex;
+                setDirection(currentDirectionIndex, false);
+            } else {
+                directionWrapper.classList.add('hidden');
+                scheduleData = rawScheduleData; // traktuj całość jako pojedynczy kierunek
+                selectedStopIndex = schedule.lastStopIndex || 0;
+            }
+
+            if (rawScheduleData.description) {
+                scheduleDescription.textContent = rawScheduleData.description;
                 scheduleDescription.classList.remove('hidden');
             } else {
-                scheduleDescription.textContent = '';
                 scheduleDescription.classList.add('hidden');
             }
             
@@ -443,12 +400,38 @@ function parseCoords(coordsStr) {
             initApp();
         }
 
+        function populateDirectionsDropdown() {
+            directionSelect.innerHTML = '';
+            rawScheduleData.directions.forEach((dir, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = dir.name;
+                directionSelect.appendChild(option);
+            });
+        }
+
+        function setDirection(dirIndex, save = true) {
+            currentDirectionIndex = dirIndex;
+            scheduleData = rawScheduleData.directions[currentDirectionIndex];
+            
+            const schedule = savedSchedules.find(s => s.id === activeScheduleId);
+            if (schedule) {
+                schedule.lastDirectionIndex = currentDirectionIndex;
+                schedule.lastStopIndex = 0; // reset przystanku przy zmianie kierunku
+                selectedStopIndex = 0;
+                if (save) saveToLocalStorage();
+            }
+
+            populateStopsDropdown();
+            stopSelect.value = selectedStopIndex;
+            calculateTimesForStop();
+            updateUI();
+            updateDistanceUI();
+        }
+
         function deleteSchedule(id) {
             savedSchedules = savedSchedules.filter(s => s.id !== id);
-            if (activeScheduleId === id) {
-                activeScheduleId = null;
-                scheduleData = null;
-            }
+            if (activeScheduleId === id) { activeScheduleId = null; rawScheduleData = null; scheduleData = null; }
             saveToLocalStorage();
             renderSavedSchedules();
         }
@@ -459,12 +442,14 @@ function parseCoords(coordsStr) {
             appView.classList.remove('hidden');
             appView.classList.add('flex');
             
-            populateStopsDropdown();
-            stopSelect.value = selectedStopIndex;
+            if (!rawScheduleData.directions) {
+                populateStopsDropdown();
+                stopSelect.value = selectedStopIndex;
+                calculateTimesForStop();
+                updateUI();
+            }
 
-            calculateTimesForStop();
-            updateUI();
-            startGeolocation(); // Uruchom śledzenie przy włączeniu rozkładu
+            startGeolocation();
             
             if (updateInterval) clearInterval(updateInterval);
             updateInterval = setInterval(updateUI, 30000); 
@@ -495,6 +480,7 @@ function parseCoords(coordsStr) {
                     
                     let newHour = baseHour + additionalHours;
                     if (newHour >= 24) newHour -= 24;
+                    if (newHour < 0) newHour += 24;
 
                     calculatedDepartures.push({
                         hour: newHour,
@@ -503,7 +489,6 @@ function parseCoords(coordsStr) {
                     });
                 });
             }
-
             calculatedDepartures.sort((a, b) => a.absoluteMin - b.absoluteMin);
         }
 
@@ -515,19 +500,16 @@ function parseCoords(coordsStr) {
 
         function renderNextDepartures(nextDeps, currentAbsoluteMin) {
             nextDeparturesContainer.innerHTML = '';
-            
             if (nextDeps.length === 0) {
                 noDeparturesMessage.classList.remove('hidden');
                 return;
             }
-            
             noDeparturesMessage.classList.add('hidden');
 
             nextDeps.forEach((dep, index) => {
                 const timeStr = `${padZero(dep.hour)}:${padZero(dep.minute)}`;
                 const diffMins = dep.absoluteMin - currentAbsoluteMin;
-                let statusText = "";
-                let statusClass = "";
+                let statusText = "", statusClass = "";
 
                 if (diffMins === 0) {
                     statusText = "Teraz!";
@@ -547,7 +529,6 @@ function parseCoords(coordsStr) {
 
                 const card = document.createElement('div');
                 card.className = `flex items-center justify-between p-4 rounded-xl border ${index === 0 ? 'border-2 border-blue-400 shadow-md bg-blue-50/30' : 'border-gray-200 bg-white shadow-sm'}`;
-                
                 card.innerHTML = `
                     <div class="flex items-center gap-4">
                         <div class="bg-blue-100 p-2 rounded-lg text-blue-600">
@@ -558,9 +539,7 @@ function parseCoords(coordsStr) {
                         <div class="text-3xl font-bold text-gray-800 tracking-tighter">${timeStr}</div>
                     </div>
                     <div class="text-right flex flex-col justify-center">
-                         <span class="px-3 py-1 rounded-full text-sm border ${statusClass}">
-                             ${statusText}
-                         </span>
+                         <span class="px-3 py-1 rounded-full text-sm border ${statusClass}">${statusText}</span>
                     </div>
                 `;
                 nextDeparturesContainer.appendChild(card);
@@ -569,7 +548,6 @@ function parseCoords(coordsStr) {
 
         function renderAllDepartures() {
             allDeparturesList.innerHTML = '';
-            
             const grouped = {};
             calculatedDepartures.forEach(dep => {
                 if (!grouped[dep.hour]) grouped[dep.hour] = [];
@@ -609,24 +587,24 @@ function parseCoords(coordsStr) {
             const currentAbsoluteMin = currentHour * 60 + currentMin;
 
             currentTimeDisplay.textContent = `${padZero(currentHour)}:${padZero(currentMin)}`;
-            
-            const nextDeps = getNextDepartures(currentHour, currentMin);
-            renderNextDepartures(nextDeps, currentAbsoluteMin);
+            renderNextDepartures(getNextDepartures(currentHour, currentMin), currentAbsoluteMin);
             renderAllDepartures();
         }
 
+        directionSelect.addEventListener('change', (e) => {
+            setDirection(parseInt(e.target.value));
+        });
+
         stopSelect.addEventListener('change', (e) => {
             selectedStopIndex = parseInt(e.target.value);
-            
             const schedule = savedSchedules.find(s => s.id === activeScheduleId);
             if (schedule) {
                 schedule.lastStopIndex = selectedStopIndex;
                 saveToLocalStorage();
             }
-            
             calculateTimesForStop();
             updateUI();
-            updateDistanceUI(); // Przelicz dystans przy zmianie przystanku
+            updateDistanceUI();
         });
 
         toggleAllBtn.addEventListener('click', () => {
@@ -644,9 +622,9 @@ function parseCoords(coordsStr) {
 
         resetDataBtn.addEventListener('click', () => {
             if (updateInterval) clearInterval(updateInterval);
-            stopGeolocation(); // Wyłącz śledzenie w głównym menu
-            
+            stopGeolocation();
             activeScheduleId = null;
+            rawScheduleData = null;
             scheduleData = null;
             localStorage.removeItem('tramActiveScheduleId');
             
@@ -659,10 +637,8 @@ function parseCoords(coordsStr) {
             toggleIcon.classList.remove('rotate-180');
             toggleAllBtn.querySelector('span').textContent = 'Pokaż pełny rozkład na dziś';
             errorMessage.classList.add('hidden');
-            
             renderSavedSchedules();
         });
-
     </script>
 </body>
 </html>
